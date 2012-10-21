@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 *.py[co]
 
 # Packages
@@ -25,3 +26,25 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+# Idea project
+.idea
+
+# Gedit temporary files
+*~
+=======
+# Idea project
+.idea
+
+# Python object files
+*.py[co]
+
+# Gedit temporary files
+*~
+
+# Sumatra Files
+.smt
+
+# Data Files
+Data
+>>>>>>> bccffb4bf2d042fac109f79766f24402f4e81503
