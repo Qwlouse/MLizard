@@ -5,19 +5,13 @@ The amazing Experiment class i dreamt up recently.
 It should be a kind of ML-Experiment-build-system-checkpointer-...
 ROADMAP:
  ### Report
- - write report that is readable by humans and this package
- - it should include the results and all the options as well as the code version
- - make such reports repeatable
  ? maybe have a database to store important facts about experiments,
    so you could easily query what you tried and what resulted
 
  ### Caching
  - make caching key independent of comments and docstring of the stage
- T Test auto-caching
 
  ### configuration
- - add logging to configuration
- - add caching to configuration
  V have a kind of config-file-hierarchy so i could define some basic settings
    like paths, logging, caching, ... for my project and experiments only need
    to overwrite some options
@@ -26,25 +20,11 @@ ROADMAP:
  ### Stage Repetition
  - count how often a stage was executed and log that
  V automatic repetition of a stage with mean and var of the result
- V make stages easily repeatable with different options
- V make option-sweeps easy
-    # maybe like this:
-    # with ex.optionset("color") as o:
-    #     o.just_call_stage() # and get all the options from the color section
-    # for o in ex.optionsets(["color", "gray", "label"]):
-    #     o.just_call_stage()
-    #
-    # We could even implement optionsweep like this
-    # for o in ex.optionsweep(["gamma", "C", "lambda"], kernel=["linear", "RBF"])
-    #     o.call_stage()
 
  ### Main method
- - Main should support parameters, loggers, (rnd), many-runs
  - main should also parse command line arguments
 
  ### Version Control integration
- - find out if current file is git-controlled and if it is checked in, warn otherwise
- - write commit hash to report
  ! automatize rerunning an experiment by checking out the appropriate version and feed the parameters
  ? gather versions of dependencies
 
