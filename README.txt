@@ -7,6 +7,7 @@ it easy to run lots of different experiments on lots of different options,
 constantly changing or exchanging parts of the process, without loosing track
 of what you did, when you did it, how you did it, what came out of it, which
 files are connected to it and so on. So this is how it looks like::
+
     """
     # for this demo we use the docstring as config
     alpha = 0.7
