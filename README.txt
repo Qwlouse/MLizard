@@ -14,7 +14,7 @@ files are connected to it and so on. So this is how it looks like::
     gamma = "Foo"
     """
     # we import the experiment factory
-    from mlizard import createExperiment
+    from mlizard.experiment import createExperiment
 
     # at the beginning of the file we create an experiment
     ex = createExperiment("Demo", config_string=__doc__)
