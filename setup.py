@@ -14,7 +14,7 @@ setup(
     author_email='klaus.greff@gmx.net',
     packages=['mlizard', 'mlizard.test'],
     scripts=[],
-#    url='http://pypi.python.org/pypi/TowelStuff/',
+    url='http://pypi.python.org/pypi/MLizard/',
     license='LICENSE.txt',
     description='Machine Learning workflow automatization',
     long_description=open('README.txt').read(),

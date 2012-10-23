@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 *.py[co]
 
 # Packages
@@ -47,4 +46,5 @@ pip-log.txt
 
 # Data Files
 Data
->>>>>>> bccffb4bf2d042fac109f79766f24402f4e81503
+
+MANIFEST
