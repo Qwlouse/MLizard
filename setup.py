@@ -17,11 +17,11 @@ setup(
 #    url='http://pypi.python.org/pypi/TowelStuff/',
     license='LICENSE.txt',
     description='Machine Learning workflow automatization',
-    long_description=open('README').read(),
+    long_description=open('README.txt').read(),
     install_requires=[
         "numpy >= 1.6.1",
         "matplotlib >= 1.1.0",
         "configobj >= 4.7.2",
-        "nose >= 1.2.1"
+        "nose >= 1.1.2"
     ],
 )
