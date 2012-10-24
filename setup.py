@@ -6,10 +6,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from distutils.core import setup
+import mlizard
 
 setup(
     name='MLizard',
-    version='0.1.0',
+    version=mlizard.__version__,
     author='Klaus Greff',
     author_email='klaus.greff@gmx.net',
     packages=['mlizard', 'mlizard.test'],
