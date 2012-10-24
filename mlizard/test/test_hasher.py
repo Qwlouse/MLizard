@@ -10,7 +10,7 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 
 from helpers import assert_not_equal, assert_true, assert_equal
-from mlizard.caches import sshash
+from ..caches import sshash
 
 def test_sshash_distinct_int_hashes():
     assert_not_equal(sshash(1), sshash(2))
@@ -57,18 +57,16 @@ def test_sshash_different_dicts_different_results():
     b = {'a':1, 'b':7, 'c':3}
     assert_not_equal(sshash(a), sshash(b))
 
+class foo(object):
+    def __init__(self, a):
+        self.a = a
+
 def test_sshash_equal_user_defined_types_equal_results():
-    class foo(object):
-        def __init__(self, a):
-            self.a = a
     f1 = foo(5)
     f2 = foo(5)
     assert_equal(sshash(f1), sshash(f2))
 
-def test_sshash_equal_user_defined_types_equal_results():
-    class foo(object):
-        def __init__(self, a):
-            self.a = a
+def test_sshash_different_user_defined_types_different_results():
     f1 = foo(5)
     f2 = foo(7)
     assert_not_equal(sshash(f1), sshash(f2))
@@ -93,10 +91,10 @@ def test_sshash_different_type_nparrays_different_results():
     b = np.arange(12, dtype=np.uint16).reshape(3,4)
     assert_not_equal(sshash(a), sshash(b))
 
-def test_sshash_uses_hash_method():
-    class foo(object):
-        def __hash__(self):
-            return 27
+class bar(object):
+    def __hash__(self):
+        return 27
 
-    f = foo()
+def test_sshash_uses_hash_method():
+    f = bar()
     assert_equal(sshash(f), 27)

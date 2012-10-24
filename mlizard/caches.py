@@ -10,7 +10,19 @@ import pickle
 import shelve
 
 def sshash(obj):
-    return hash(pickle.dumps(obj))
+    try:
+        h = obj.__hash__()
+        # might be user-defined class
+        # but we don't want the standard behaviour of an id() based hash
+        # so lets check if the __hash__ method is the standard object hash
+        if obj.__class__.__hash__ == object.__hash__:
+            raise TypeError("standard id-based-hash")
+        return h
+    except (AttributeError, TypeError):
+        # AttributeError: (probably) old-style class => pickle
+        # TypeError "unhashable type" => pickle
+        # TypeError "standard id-based-hash" => pickle
+        return hash(pickle.dumps(obj))
 
 
 class ShelveCache(object):
