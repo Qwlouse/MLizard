@@ -154,7 +154,7 @@ class Experiment(object):
         - you provide multiple values for an argument
         - after all the filling an argument is still missing"""
         if isinstance(f, StageFunction): # do nothing if it is already a stage
-            # TODO: do we need to allow beeing stage of multiple experiments?
+            # do we need to allow beeing stage of multiple experiments?
             return f
         else :
             stage_name = f.func_name

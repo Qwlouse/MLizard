@@ -10,10 +10,7 @@ import pickle
 import shelve
 
 def sshash(obj):
-    try:
-        return hash(obj)
-    except TypeError:
-        return hash(pickle.dumps(obj))
+    return hash(pickle.dumps(obj))
 
 
 class ShelveCache(object):

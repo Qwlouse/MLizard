@@ -32,7 +32,7 @@ class StageFunctionLoggerFacade(object):
     def set_result(self, **kwargs):
         self.results_logger._log(SET_RESULT_LEVEL, "set result: %(set_dict)s", None, extra={"set_dict" : kwargs})
 
-    def appendResult(self, **kwargs):
+    def append_result(self, **kwargs):
         self.results_logger._log(APPEND_RESULT_LEVEL, "append result: %(append_dict)s", None, extra= {"append_dict" : kwargs})
 
 

@@ -40,9 +40,10 @@ class StageFunction(object):
             arguments['rnd'] = self.random
 
     def add_logger_arg_to(self, arguments):
+        l = StageFunctionLoggerFacade(self.message_logger, self.results_logger)
         if 'logger' in self.signature['args']:
-            l = StageFunctionLoggerFacade(self.message_logger, self.results_logger)
             arguments['logger'] = l
+        return l
 
     def execute_function(self, args, kwargs, options):
         # Modify Arguments
@@ -51,12 +52,12 @@ class StageFunction(object):
         arguments = apply_options(self.signature, args, kwargs, options)
         self.add_random_arg_to(arguments)
         key = (self.source, dict(arguments)) # use arguments without logger as cache-key
-        self.add_logger_arg_to(arguments)
+        log_facade = self.add_logger_arg_to(arguments)
         assert_no_missing_args(self.signature, arguments)
         # Check for cached version
         try:
             result, result_logs = self.cache[key]
-            self.results_logger.setResult(**result_logs)
+            log_facade.set_result(**result_logs)
             self.message_logger.info("Retrieved '%s' from cache. Skipping Execution"%self.__name__)
         except KeyError:
         #### Run the function ####
