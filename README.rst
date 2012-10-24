@@ -40,17 +40,19 @@ files are connected to it and so on. So this is how it looks like::
 
 So we have to create an experiment and decorate all of our functions.
 But what do we get for this?
-- automatic option passing (alpha, beta)
-- a logger
-- a random number generator that is seeded by the experiment
-- automatic caching of intermediate results
+
+* automatic option passing (alpha, beta)
+* a logger
+* a random number generator that is seeded by the experiment
+* automatic caching of intermediate results
 
 More to come (Roadmap):
-- easy option sweeps
-- report file
-- online results view
-- database of runs/options/results
-- git integration (track version of code for every result)
+
+* easy option sweeps
+* report file
+* online results view
+* database of runs/options/results
+* git integration (track version of code for every result)
 
 
 

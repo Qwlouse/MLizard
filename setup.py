@@ -17,7 +17,7 @@ setup(
     url='http://pypi.python.org/pypi/MLizard/',
     license='LICENSE.txt',
     description='Machine Learning workflow automatization',
-    long_description=open('README.txt').read(),
+    long_description=open('README.rst').read(),
     install_requires=[
         "numpy >= 1.6.1",
         "matplotlib >= 1.1.0",
