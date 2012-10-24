@@ -43,10 +43,11 @@ ROADMAP:
 
 from __future__ import division, print_function, unicode_literals
 
-from collections import defaultdict
+
 from configobj import ConfigObj
 from copy import copy
 import inspect
+import log
 import logging
 from matplotlib import pyplot as plt
 import numpy as np
@@ -60,21 +61,6 @@ __all__ = ['Experiment', 'createExperiment']
 
 RANDOM_SEED_RANGE = 0, 1000000
 
-
-LoggerClass = logging.getLoggerClass()
-SET_RESULT_LEVEL = 100
-APPEND_RESULT_LEVEL = 101
-class ExperimentLogger(logging.Logger):
-    def __init__(self, name, level=logging.NOTSET):
-        super(ExperimentLogger, self).__init__(name, level=level)
-
-    def setResult(self, **kwargs):
-        self._log(SET_RESULT_LEVEL, "set result: %(set_dict)s", None, extra={"set_dict" : kwargs})
-
-    def appendResult(self, **kwargs):
-        self._log(APPEND_RESULT_LEVEL, "append result: %(append_dict)s", None, extra= {"append_dict" : kwargs})
-
-logging.setLoggerClass(ExperimentLogger)
 
 class StageFunction(object):
     def __init__(self, name, f, cache, options, logger, seed):
@@ -119,7 +105,7 @@ class StageFunction(object):
             self.logger.info("Retrieved '%s' from cache. Skipping Execution"%self.__name__)
         except KeyError:
         #### Run the function ####
-            local_results_handler = ResultLogHandler()
+            local_results_handler = log.ResultLogHandler()
             self.logger.addHandler(local_results_handler)
             start_time = time.time()
             result = self.function(**arguments)
@@ -156,7 +142,7 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None, 
         ch = logging.StreamHandler()
         class ResultsLogFilter(object):
             def filter(self, record):
-                return record.levelno not in [SET_RESULT_LEVEL, APPEND_RESULT_LEVEL]
+                return record.levelno not in [log.SET_RESULT_LEVEL, log.APPEND_RESULT_LEVEL]
         ch.addFilter(ResultsLogFilter())
         ch.setLevel(logging.INFO)
         formatter = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
@@ -190,20 +176,7 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None, 
 
     return Experiment(name, logger, options, seed, cache)
 
-class ResultLogHandler(logging.Handler):
-    def __init__(self, level=logging.NOTSET):
-        super(ResultLogHandler, self).__init__(level=level)
-        self.results = defaultdict(list)
 
-    def filter(self, record):
-        return record.levelno in [SET_RESULT_LEVEL, APPEND_RESULT_LEVEL]
-
-    def handle(self, record):
-        if record.levelno == SET_RESULT_LEVEL:
-            self.results.update(record.set_dict)
-        elif record.levelno == APPEND_RESULT_LEVEL:
-            for k, v in record.append_dict.items():
-                self.results[k].append(v)
 
 class OptionContext(object):
     def __init__(self, options, stage_functions):
@@ -227,7 +200,7 @@ class Experiment(object):
         self.seed = seed
         self.prng = np.random.RandomState(self.seed)
         self.cache = cache
-        self.results_handler = ResultLogHandler()
+        self.results_handler = log.ResultLogHandler()
         self.logger.addHandler(self.results_handler)
         self.stages = dict()
         self.plots = []
