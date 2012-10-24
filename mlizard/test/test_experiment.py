@@ -7,6 +7,7 @@
 from __future__ import division, print_function, unicode_literals
 
 import logging
+import numpy as np
 from tempfile import NamedTemporaryFile
 
 from helpers import *
@@ -24,7 +25,8 @@ def create_basic_Experiment(seed = 123456):
     name = "TestExperiment"
     options = {}
     cache = CacheStub()
-    return Experiment(name, NO_LOGGER, options, seed, cache)
+    prng = np.random.RandomState(seed)
+    return Experiment(name, NO_LOGGER, NO_LOGGER, options, prng, cache)
 
 def test_Experiment_constructor_works():
     ex1 = create_basic_Experiment()
@@ -176,10 +178,7 @@ def test_experiment_reads_options_from_file():
         assert_true("d" in ex1.options)
         assert_equal(ex1.options['d'], {'a' : 1, 'b' : 2})
 
-def test_experiment_generates_seed():
-    ex1 = create_basic_Experiment()
-    assert_true(type(ex1.seed) is int )
-
+@nottest
 def test_experiment_reads_seed_from_file():
     with NamedTemporaryFile() as f:
         f.write("""

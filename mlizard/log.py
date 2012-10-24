@@ -12,20 +12,29 @@ from __future__ import division, print_function, unicode_literals
 import logging
 from collections import defaultdict
 
-LoggerClass = logging.getLoggerClass()
 SET_RESULT_LEVEL = 100
-APPEND_RESULT_LEVEL = 101
-class ExperimentLogger(logging.Logger):
-    def __init__(self, name, level=logging.NOTSET):
-        super(ExperimentLogger, self).__init__(name, level=level)
+APPEND_RESULT_LEVEL = 110
 
-    def setResult(self, **kwargs):
-        self._log(SET_RESULT_LEVEL, "set result: %(set_dict)s", None, extra={"set_dict" : kwargs})
+class StageFunctionLoggerFacade(object):
+    def __init__(self, message_logger, results_logger):
+        self.message_logger = message_logger
+        # just use debug, info, ... from message logger
+        self.debug = self.message_logger.debug
+        self.info = self.message_logger.info
+        self.warning = self.message_logger.warning
+        self.error = self.message_logger.error
+        self.critical = self.message_logger.critical
+        self.log = self.message_logger.log
+        self.exception = self.message_logger.exception
+
+        self.results_logger = results_logger
+
+    def set_result(self, **kwargs):
+        self.results_logger._log(SET_RESULT_LEVEL, "set result: %(set_dict)s", None, extra={"set_dict" : kwargs})
 
     def appendResult(self, **kwargs):
-        self._log(APPEND_RESULT_LEVEL, "append result: %(append_dict)s", None, extra= {"append_dict" : kwargs})
+        self.results_logger._log(APPEND_RESULT_LEVEL, "append result: %(append_dict)s", None, extra= {"append_dict" : kwargs})
 
-logging.setLoggerClass(ExperimentLogger)
 
 
 

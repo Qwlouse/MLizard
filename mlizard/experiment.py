@@ -46,92 +46,20 @@ from __future__ import division, print_function, unicode_literals
 
 from configobj import ConfigObj
 from copy import copy
-import inspect
 import log
 import logging
 from matplotlib import pyplot as plt
 import numpy as np
 from StringIO import StringIO
-import time
 
 from caches import CacheStub
-from function_helpers import *
+from mlizard.stage import StageFunctionOptionsView, StageFunction
 
 __all__ = ['Experiment', 'createExperiment']
 
 RANDOM_SEED_RANGE = 0, 1000000
 
 
-class StageFunction(object):
-    def __init__(self, name, f, cache, options, logger, seed):
-        self.function = f
-        self.logger = logger
-        self.random = np.random.RandomState(seed)
-        self.cache = cache
-        self.options = options
-        # preserve meta_information
-        self.__name__ = name
-        self.func_name = name
-        self.__doc__ = f.__doc__
-        # extract extra info
-        self.source = str(inspect.getsource(f))
-        self.signature = get_signature(f)
-        # some configuration
-        self.caching_threshold = 2 # seconds
-        # internal state
-        self.execution_time = None
-
-    def add_random_arg_to(self, arguments):
-        if 'rnd' in self.signature['args']  and 'rnd' not in arguments:
-            arguments['rnd'] = self.random
-
-    def add_logger_arg_to(self, arguments):
-        if 'logger' in self.signature['args']:
-            arguments['logger'] = self.logger
-
-    def execute_function(self, args, kwargs, options):
-        # Modify Arguments
-        assert_no_unexpected_kwargs(self.signature, kwargs)
-        assert_no_duplicate_args(self.signature, args, kwargs)
-        arguments = apply_options(self.signature, args, kwargs, options)
-        self.add_random_arg_to(arguments)
-        key = (self.source, dict(arguments)) # use arguments without logger as cache-key
-        self.add_logger_arg_to(arguments)
-        assert_no_missing_args(self.signature, arguments)
-        # Check for cached version
-        try:
-            result, result_logs = self.cache[key]
-            self.logger.setResult(**result_logs)
-            self.logger.info("Retrieved '%s' from cache. Skipping Execution"%self.__name__)
-        except KeyError:
-        #### Run the function ####
-            local_results_handler = log.ResultLogHandler()
-            self.logger.addHandler(local_results_handler)
-            start_time = time.time()
-            result = self.function(**arguments)
-            self.execution_time = time.time() - start_time
-            self.logger.info("Completed Stage '%s' in %2.2f sec"%(self.__name__, self.execution_time))
-            result_logs = local_results_handler.results
-            ##########################
-            if self.execution_time > self.caching_threshold:
-                self.logger.info("Execution took more than %2.2f sec so we cache the result."%self.caching_threshold)
-                self.cache[key] = result, result_logs
-        return result
-
-    def __call__(self, *args, **kwargs):
-        return self.execute_function(args, kwargs, self.options)
-
-    def __hash__(self):
-        return hash(self.source)
-
-
-class StageFunctionOptionsView(object):
-    def __init__(self, stage_func, options):
-        self.options = options
-        self.func = stage_func
-
-    def __call__(self, *args, **kwargs):
-        return self.func.execute_function(args, kwargs, self.options)
 
 
 def createExperiment(name = "Experiment", config_file=None, config_string=None, logger=None, seed=None, cache=None):
@@ -140,10 +68,6 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None, 
         logger = logging.getLogger(name)
         logger.setLevel(logging.INFO)
         ch = logging.StreamHandler()
-        class ResultsLogFilter(object):
-            def filter(self, record):
-                return record.levelno not in [log.SET_RESULT_LEVEL, log.APPEND_RESULT_LEVEL]
-        ch.addFilter(ResultsLogFilter())
         ch.setLevel(logging.INFO)
         formatter = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
         ch.setFormatter(formatter)
@@ -173,8 +97,9 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None, 
                         "file to repeat experiment".format(seed))
 
     cache = cache or CacheStub()
-
-    return Experiment(name, logger, options, seed, cache)
+    results_logger = logging.getLogger("Results")
+    prng = np.random.RandomState(seed)
+    return Experiment(name, logger, results_logger, options, prng, cache)
 
 
 
@@ -193,15 +118,15 @@ class OptionContext(object):
 
 
 class Experiment(object):
-    def __init__(self, name, logger, options, seed, cache):
+    def __init__(self, name, message_logger, results_logger, options, prng, cache):
         self.name = name
-        self.logger = logger
+        self.message_logger = message_logger
+        self.results_logger = results_logger
         self.options = options
-        self.seed = seed
-        self.prng = np.random.RandomState(self.seed)
+        self.prng = prng
         self.cache = cache
         self.results_handler = log.ResultLogHandler()
-        self.logger.addHandler(self.results_handler)
+        self.results_logger.addHandler(self.results_handler)
         self.stages = dict()
         self.plots = []
 
@@ -233,9 +158,11 @@ class Experiment(object):
             return f
         else :
             stage_name = f.func_name
-            stage_logger = self.logger.getChild(stage_name)
+            stage_msg_logger = self.message_logger.getChild(stage_name)
+            stage_results_logger = self.results_logger.getChild(stage_name)
+
             stage_seed = self.prng.randint(*RANDOM_SEED_RANGE)
-            stage = StageFunction(stage_name, f, self.cache, self.options, stage_logger, stage_seed)
+            stage = StageFunction(stage_name, f, self.cache, self.options, stage_msg_logger, stage_results_logger, stage_seed)
             self.stages[stage_name] = stage
             return stage
 
