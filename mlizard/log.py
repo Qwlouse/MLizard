@@ -11,6 +11,8 @@ Logging functionality for experiments
 from __future__ import division, print_function, unicode_literals
 import logging
 from collections import defaultdict
+import time
+import matplotlib.pyplot as plt
 
 SET_RESULT_LEVEL = 100
 APPEND_RESULT_LEVEL = 110
@@ -42,13 +44,47 @@ class ResultLogHandler(logging.Handler):
     def __init__(self, level=logging.NOTSET):
         super(ResultLogHandler, self).__init__(level=level)
         self.results = defaultdict(list)
+        self.plot_generators = []
+        self.plots = None
+        self.plotting_delay = 0.5 # seconds
+        self.plot_time = 0
 
     def filter(self, record):
         return record.levelno in [SET_RESULT_LEVEL, APPEND_RESULT_LEVEL]
 
-    def handle(self, record):
+    def emit(self, record):
         if record.levelno == SET_RESULT_LEVEL:
             self.results.update(record.set_dict)
         elif record.levelno == APPEND_RESULT_LEVEL:
             for k, v in record.append_dict.items():
                 self.results[k].append(v)
+
+        # check for plotting
+        t = time.time()
+        if t - self.plot_time > self.plotting_delay:
+            if self.plots is None:
+                self.start_plots()
+            self.plot_time = t
+            for p in self.plots:
+                p['fig'] = p['plot'].send(self.results)
+                plt.draw()
+
+    def start_plots(self):
+        plt.ion()
+        self.plots = []
+        for plot_gen in self.plot_generators:
+            plot = plot_gen()
+            self.plots.append({'plot':plot,
+                               'fig':plot.next()})
+
+
+
+
+
+    def add_plot(self, plot):
+        if not plot in self.plot_generators:
+            self.plot_generators.append(plot)
+
+    def remove_plot(self, plot):
+        if plot in self.plot_generators:
+            self.plot_generators.remove(plot)

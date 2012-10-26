@@ -175,7 +175,8 @@ class Experiment(object):
     def main(self, f):
         if f.__module__ == "__main__":
             f()
-        for p in self.plots:
-            p(self.results_handler.results).show()
-        plt.show()
+            for p in self.plots:
+                p(self.results_handler.results).show()
+            plt.ioff()
+            plt.show()
         return f
