@@ -32,6 +32,7 @@ class StageFunction(object):
         self.signature = get_signature(f)
         # some configuration
         self.caching_threshold = 2 # seconds
+        self.do_cache_results = True
         # internal state
         self.execution_time = None
 
@@ -54,24 +55,30 @@ class StageFunction(object):
         key = (self.source, dict(arguments)) # use arguments without logger as cache-key
         log_facade = self.add_logger_arg_to(arguments)
         assert_no_missing_args(self.signature, arguments)
-        # Check for cached version
-        try:
-            result, result_logs = self.cache[key]
-            log_facade.set_result(**result_logs)
-            self.message_logger.info("Retrieved '%s' from cache. Skipping Execution"%self.__name__)
-        except KeyError:
+        # do we want to cache?
+        if self.cache and self.do_cache_results:
+            # Check for cached version
+            try:
+                result, result_logs = self.cache[key]
+                log_facade.set_result(**result_logs)
+                self.message_logger.info("Retrieved '%s' from cache. Skipping Execution"%self.__name__)
+                return result
+            except KeyError:
+                pass
+
         #### Run the function ####
-            local_results_handler = log.ResultLogHandler()
-            self.results_logger.addHandler(local_results_handler)
-            start_time = time.time()
-            result = self.function(**arguments)
-            self.execution_time = time.time() - start_time
-            self.message_logger.info("Completed Stage '%s' in %2.2f sec"%(self.__name__, self.execution_time))
-            result_logs = local_results_handler.results
-            ##########################
-            if self.execution_time > self.caching_threshold:
-                self.message_logger.info("Execution took more than %2.2f sec so we cache the result."%self.caching_threshold)
-                self.cache[key] = result, result_logs
+        local_results_handler = log.ResultLogHandler()
+        self.results_logger.addHandler(local_results_handler)
+        start_time = time.time()
+        result = self.function(**arguments)
+        self.execution_time = time.time() - start_time
+        self.message_logger.info("Completed Stage '%s' in %2.2f sec"%(self.__name__, self.execution_time))
+        result_logs = local_results_handler.results
+        ##########################
+
+        if self.cache and self.do_cache_results and self.execution_time > self.caching_threshold:
+            self.message_logger.info("Execution took more than %2.2f sec so we cache the result."%self.caching_threshold)
+            self.cache[key] = result, result_logs
         return result
 
     def __call__(self, *args, **kwargs):

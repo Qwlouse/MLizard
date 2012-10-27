@@ -53,7 +53,7 @@ import numpy as np
 from StringIO import StringIO
 
 from caches import CacheStub
-from mlizard.stage import StageFunctionOptionsView, StageFunction
+from stage import StageFunctionOptionsView, StageFunction
 
 __all__ = ['Experiment', 'createExperiment']
 
@@ -96,7 +96,7 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None, 
             logger.warn("No Seed given. Using seed={}. Set in config "
                         "file to repeat experiment".format(seed))
 
-    cache = cache or CacheStub()
+    cache = cache# or CacheStub()
     results_logger = logging.getLogger("Results")
     prng = np.random.RandomState(seed)
     return Experiment(name, logger, results_logger, options, prng, cache)
