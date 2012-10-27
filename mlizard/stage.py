@@ -9,6 +9,7 @@ import numpy as np
 import inspect
 import time
 from log import StageFunctionLoggerFacade, ResultLogHandler
+from report import Report
 
 class StageFunction(object):
     def __init__(self, name, f, cache, options, message_logger, results_logger,
@@ -58,8 +59,8 @@ class StageFunction(object):
             try:
                 result, result_logs = self.cache[key]
                 log_facade.set_result(**result_logs)
-                self.message_logger.info("Retrieved '%s' from cache. "
-                                         "Skipping Execution"%self.__name__)
+                self.message_logger.info("Retrieved results from cache. "
+                                         "Skipping Execution")
                 return result
             except KeyError:
                 pass
@@ -70,8 +71,7 @@ class StageFunction(object):
         start_time = time.time()
         result = self.function(**arguments)
         self.execution_time = time.time() - start_time
-        self.message_logger.info("Completed Stage '%s' in %2.2f sec"%
-                                 (self.__name__, self.execution_time))
+        self.message_logger.info("Completed in %2.2f sec", self.execution_time)
         result_logs = local_results_handler.results
         ##########################
 
