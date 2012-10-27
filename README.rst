@@ -117,5 +117,7 @@ Roadmap
 * git integration (track version of code for every result)
 
 
-
+License
+=======
+The MLizard project is published under the Gnu General Public License Version 3.
 
