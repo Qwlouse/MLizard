@@ -32,11 +32,13 @@ class StageFunctionLoggerFacade(object):
         self.results_logger = results_logger
 
     def set_result(self, **kwargs):
-        self.results_logger._log(SET_RESULT_LEVEL, "set result: %(set_dict)s", None, extra={"set_dict" : kwargs})
+        self.results_logger._log(SET_RESULT_LEVEL, "set result: %(set_dict)s",
+            None, extra={"set_dict" : kwargs})
 
     def append_result(self, **kwargs):
-        self.results_logger._log(APPEND_RESULT_LEVEL, "append result: %(append_dict)s", None, extra= {"append_dict" : kwargs})
-
+        self.results_logger._log(APPEND_RESULT_LEVEL,
+            "append result: %(append_dict)s", None,
+            extra= {"append_dict" : kwargs})
 
 
 
@@ -76,10 +78,6 @@ class ResultLogHandler(logging.Handler):
             plot = plot_gen()
             self.plots.append({'plot':plot,
                                'fig':plot.next()})
-
-
-
-
 
     def add_plot(self, plot):
         if not plot in self.plot_generators:

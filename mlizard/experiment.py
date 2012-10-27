@@ -29,15 +29,13 @@ ROADMAP:
  - main should also parse command line arguments
 
  ### Version Control integration
- ! automatize rerunning an experiment by checking out the appropriate version and feed the parameters
+ ! automatize rerunning an experiment by checking out the appropriate version
+   and feed the parameters
  ? gather versions of dependencies
 
  ### Display results
  V should be decoupled from console/pc we are running on
- V figure out how to incorporate plots
- V Make very long stages deliver a stream of data to inspect their behaviour live
  ? maybe start a webserver to watch results
- ? maybe incorporate self-updating plots into ipython-notebook
 
 """
 
@@ -62,7 +60,8 @@ RANDOM_SEED_RANGE = 0, 1000000
 
 
 
-def createExperiment(name = "Experiment", config_file=None, config_string=None, logger=None, seed=None, cache=None):
+def createExperiment(name = "Experiment", config_file=None, config_string=None,
+                     logger=None, seed=None, cache=None):
     # setup logging
     if logger is None:
         logger = logging.getLogger(name)
@@ -85,7 +84,9 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None, 
             options = ConfigObj(config_file, unrepr=True, encoding="UTF-8")
     elif config_string is not None:
         logger.info("Reading configuration from string.")
-        options = ConfigObj(StringIO(str(config_string)), unrepr=True, encoding="UTF8")
+        options = ConfigObj(StringIO(str(config_string)),
+                            unrepr=True,
+                            encoding="UTF8")
 
     # get seed for random numbers in experiment
     if seed is None:
@@ -118,7 +119,8 @@ class OptionContext(object):
 
 
 class Experiment(object):
-    def __init__(self, name, message_logger, results_logger, options, prng, cache):
+    def __init__(self, name, message_logger, results_logger, options, prng,
+                 cache):
         self.name = name
         self.message_logger = message_logger
         self.results_logger = results_logger
