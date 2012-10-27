@@ -179,7 +179,9 @@ class Experiment(object):
     def main(self, f):
         main_stage = self.convert_to_stage_function(f)
         if f.__module__ == "__main__":
-            main_stage()
+            import sys
+            args = sys.argv[1:]
+            main_stage(*args)
             for p in self.plots:
                 p(self.results_handler.results).show()
             plt.ioff()
