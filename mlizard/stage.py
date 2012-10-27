@@ -73,6 +73,7 @@ class StageFunction(object):
         self.execution_time = time.time() - start_time
         self.message_logger.info("Completed in %2.2f sec", self.execution_time)
         result_logs = local_results_handler.results
+        self.results_logger.removeHandler(local_results_handler)
         ##########################
 
         if self.cache and \
