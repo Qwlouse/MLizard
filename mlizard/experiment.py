@@ -135,6 +135,17 @@ class Experiment(object):
         options.update(self.options[section_name])
         return OptionContext(options, self.stages.values())
 
+    def convert_to_stage_function(self, f):
+        if isinstance(f, StageFunction): # do nothing if it is already a stage
+            # do we need to allow beeing stage of multiple experiments?
+            return f
+        else :
+            stage_name = f.func_name
+            stage_msg_logger = self.message_logger.getChild(stage_name)
+            stage_results_logger = self.results_logger.getChild(stage_name)
+            stage_seed = self.prng.randint(*RANDOM_SEED_RANGE)
+            return StageFunction(stage_name, f, self.cache, self.options,
+                stage_msg_logger, stage_results_logger, stage_seed)
 
     def stage(self, f):
         """
@@ -153,18 +164,9 @@ class Experiment(object):
         - you pass an unexpected keyword argument
         - you provide multiple values for an argument
         - after all the filling an argument is still missing"""
-        if isinstance(f, StageFunction): # do nothing if it is already a stage
-            # do we need to allow beeing stage of multiple experiments?
-            return f
-        else :
-            stage_name = f.func_name
-            stage_msg_logger = self.message_logger.getChild(stage_name)
-            stage_results_logger = self.results_logger.getChild(stage_name)
-
-            stage_seed = self.prng.randint(*RANDOM_SEED_RANGE)
-            stage = StageFunction(stage_name, f, self.cache, self.options, stage_msg_logger, stage_results_logger, stage_seed)
-            self.stages[stage_name] = stage
-            return stage
+        stage = self.convert_to_stage_function(f)
+        self.stages[stage.__name__] = stage
+        return stage
 
     def plot(self, f):
         """decorator to generate plots"""
@@ -173,10 +175,11 @@ class Experiment(object):
 
 
     def main(self, f):
+        main_stage = self.convert_to_stage_function(f)
         if f.__module__ == "__main__":
-            f()
+            main_stage()
             for p in self.plots:
                 p(self.results_handler.results).show()
             plt.ioff()
             plt.show()
-        return f
+        return main_stage
