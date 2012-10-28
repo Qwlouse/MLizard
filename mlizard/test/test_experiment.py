@@ -7,25 +7,13 @@
 from __future__ import division, print_function, unicode_literals
 
 import logging
-import numpy as np
 from tempfile import NamedTemporaryFile
 
 from helpers import *
-
-from mlizard.caches import CacheStub
-from mlizard.experiment import Experiment, createExperiment
+from ..factory import createExperiment, create_basic_Experiment
 
 # don't gather logging spam
 logging.disable(logging.CRITICAL)
-
-NO_LOGGER = logging.getLogger('ignore')
-NO_LOGGER.disabled = 1
-
-def create_basic_Experiment(seed = 123456):
-    name = "TestExperiment"
-    options = {}
-    cache = CacheStub()
-    return Experiment(name, NO_LOGGER, NO_LOGGER, options, cache, seed)
 
 def test_Experiment_constructor_works():
     ex1 = create_basic_Experiment()

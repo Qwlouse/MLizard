@@ -36,83 +36,22 @@ ROADMAP:
  ### Display results
  V should be decoupled from console/pc we are running on
  ? maybe start a webserver to watch results
-
 """
 
 from __future__ import division, print_function, unicode_literals
 
-
-from configobj import ConfigObj
 from copy import copy
 import log
-import logging
 from matplotlib import pyplot as plt
 import numpy as np
-from StringIO import StringIO
 import time
 
 from report import Report, PlainTextReportFormatter
 from stage import StageFunctionOptionsView, StageFunction
 
-__all__ = ['Experiment', 'createExperiment']
+__all__ = ['Experiment']
 
 RANDOM_SEED_RANGE = 0, 1000000
-
-
-
-
-def createExperiment(name = "Experiment", config_file=None, config_string=None,
-                     logger=None, seed=None, cache=None):
-    # setup logging
-    if logger is None:
-        logger = logging.getLogger(name)
-        logger.setLevel(logging.INFO)
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
-        logger.info("No Logger configured: Using generic stdout Logger")
-
-    # reading configuration
-    options = ConfigObj(unrepr=True)
-    if config_file is not None:
-        if isinstance(config_file, basestring) :
-            logger.info("Loading config file {}".format(config_file))
-            options = ConfigObj(config_file, unrepr=True, encoding="UTF-8")
-        elif hasattr(config_file, 'read'):
-            logger.info("Reading configuration from file.")
-            options = ConfigObj(config_file, unrepr=True, encoding="UTF-8")
-    elif config_string is not None:
-        logger.info("Reading configuration from string.")
-        options = ConfigObj(StringIO(str(config_string)),
-                            unrepr=True,
-                            encoding="UTF8")
-
-    # get seed for random numbers in experiment
-    if seed is None:
-        if 'seed' in options:
-            seed = options['seed']
-
-    cache = cache# or CacheStub()
-    results_logger = logging.getLogger("Results")
-    return Experiment(name, logger, results_logger, options, cache, seed)
-
-
-
-class OptionContext(object):
-    def __init__(self, options, stage_functions):
-        self.options = options
-        for sf in stage_functions:
-            sf_view = StageFunctionOptionsView(sf, options)
-            self.__setattr__(sf.func_name, sf_view)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
 
 class Experiment(object):
     def __init__(self, name, message_logger, results_logger, options, cache,
@@ -218,3 +157,16 @@ class Experiment(object):
         report.plots = plots
         report.end_time = time.time()
         return report
+
+class OptionContext(object):
+    def __init__(self, options, stage_functions):
+        self.options = options
+        for sf in stage_functions:
+            sf_view = StageFunctionOptionsView(sf, options)
+            self.__setattr__(sf.func_name, sf_view)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
