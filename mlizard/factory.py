@@ -9,10 +9,20 @@ from StringIO import StringIO
 from experiment import Experiment
 from mlizard.caches import CacheStub
 
-package_logger = logging.getLogger('MLizard')
 NO_LOGGER = logging.getLogger('ignore')
 NO_LOGGER.disabled = 1
 
+def create_basic_stream_logger(name, level=logging.INFO):
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    formatter = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    return logger
+
+package_logger = create_basic_stream_logger('MLizard')
 
 def createExperiment(name = "Experiment", config_file=None, config_string=None,
                      logger=None, seed=None, cache=None):
@@ -33,13 +43,7 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None,
 
     # setup logging
     if logger is None:
-        logger = logging.getLogger(name)
-        logger.setLevel(logging.INFO)
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
+        logger = create_basic_stream_logger(name)
         package_logger.info("No Logger configured: Using generic stdout Logger")
 
     # get seed for random numbers in experiment
