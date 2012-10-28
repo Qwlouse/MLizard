@@ -31,7 +31,7 @@ class StageFunction(object):
         self.caching_threshold = 2 # seconds
         self.do_cache_results = True
         # internal state
-        self.execution_time = None
+        self.execution_times = []
 
     def add_random_arg_to(self, arguments):
         if 'rnd' in self.signature['args']  and 'rnd' not in arguments:
@@ -69,16 +69,17 @@ class StageFunction(object):
         local_results_handler = ResultLogHandler()
         self.results_logger.addHandler(local_results_handler)
         start_time = time.time()
-        result = self.function(**arguments)
-        self.execution_time = time.time() - start_time
-        self.message_logger.info("Completed in %2.2f sec", self.execution_time)
+        result = self.function(**arguments) #<<=====
+        self.execution_times.append(time.time() - start_time)
+        self.message_logger.info("Completed in %2.2f sec",
+                                 self.execution_times[-1])
         result_logs = local_results_handler.results
         self.results_logger.removeHandler(local_results_handler)
         ##########################
 
         if self.cache and \
            self.do_cache_results and \
-           self.execution_time > self.caching_threshold:
+           self.execution_times[-1] > self.caching_threshold:
             self.message_logger.info("Execution took more than %2.2f sec so we "
                                      "cache the result."%self.caching_threshold)
             self.cache[key] = result, result_logs

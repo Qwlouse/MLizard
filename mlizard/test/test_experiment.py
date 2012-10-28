@@ -25,8 +25,7 @@ def create_basic_Experiment(seed = 123456):
     name = "TestExperiment"
     options = {}
     cache = CacheStub()
-    prng = np.random.RandomState(seed)
-    return Experiment(name, NO_LOGGER, NO_LOGGER, options, prng, cache)
+    return Experiment(name, NO_LOGGER, NO_LOGGER, options, cache, seed)
 
 def test_Experiment_constructor_works():
     ex1 = create_basic_Experiment()
@@ -182,11 +181,11 @@ def test_experiment_reads_options_from_file():
 def test_experiment_reads_seed_from_file():
     with NamedTemporaryFile() as f:
         f.write("""
-        seed=12345
+        seed=54321
         """)
         f.flush()
         ex1 = createExperiment(config_file=f.name)
-        assert_equal(ex1.seed, 12345)
+        assert_equal(ex1.seed, 54321)
 
 
 def test_fill_args_seeds_deterministic():

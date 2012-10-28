@@ -49,8 +49,9 @@ import logging
 from matplotlib import pyplot as plt
 import numpy as np
 from StringIO import StringIO
+import time
 
-from caches import CacheStub
+from report import Report, PlainTextReportFormatter
 from stage import StageFunctionOptionsView, StageFunction
 
 __all__ = ['Experiment', 'createExperiment']
@@ -92,15 +93,10 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None,
     if seed is None:
         if 'seed' in options:
             seed = options['seed']
-        else:
-            seed = np.random.randint(*RANDOM_SEED_RANGE)
-            logger.warn("No Seed given. Using seed={}. Set in config "
-                        "file to repeat experiment".format(seed))
 
     cache = cache# or CacheStub()
     results_logger = logging.getLogger("Results")
-    prng = np.random.RandomState(seed)
-    return Experiment(name, logger, results_logger, options, prng, cache)
+    return Experiment(name, logger, results_logger, options, cache, seed)
 
 
 
@@ -119,18 +115,25 @@ class OptionContext(object):
 
 
 class Experiment(object):
-    def __init__(self, name, message_logger, results_logger, options, prng,
-                 cache):
+    def __init__(self, name, message_logger, results_logger, options, cache,
+                 seed = None):
         self.name = name
         self.message_logger = message_logger
         self.results_logger = results_logger
         self.options = options
-        self.prng = prng
         self.cache = cache
         self.results_handler = log.ResultLogHandler()
         self.results_logger.addHandler(self.results_handler)
         self.stages = dict()
-        self.plots = []
+        self.main_stage = None
+        self.plot_functions = []
+
+        if seed is None:
+            seed = np.random.randint(*RANDOM_SEED_RANGE)
+            message_logger.warn("No Seed given. Using seed={}. Set in config "
+                                "file to repeat experiment".format(seed))
+        self.seed = seed
+        self.prng = np.random.RandomState(seed)
 
     def optionset(self, section_name):
         options = copy(self.options)
@@ -172,18 +175,46 @@ class Experiment(object):
 
     def plot(self, f):
         """decorator to generate plots"""
-        self.plots.append(f)
+        self.plot_functions.append(f)
         return f
 
 
     def main(self, f):
-        main_stage = self.convert_to_stage_function(f)
+        assert self.main_stage is None, "Only one main stage is allowed!"
+        self.main_stage = self.convert_to_stage_function(f)
         if f.__module__ == "__main__":
             import sys
             args = sys.argv[1:]
-            main_stage(*args)
-            for p in self.plots:
-                p(self.results_handler.results).show()
+            ######## run main #########
+            report = self(*args)
+            ###########################
             plt.ioff()
             plt.show()
-        return main_stage
+            formatter = PlainTextReportFormatter()
+            print(formatter.format(report))
+            sys.exit(0)
+        return self
+
+    def __call__(self, *args, **kwargs):
+        report = Report(self.name)
+        self.message_logger.addHandler(report)
+        ######## call stage #########
+        result = self.main_stage.execute_function(args, kwargs, self.options)
+        #############################
+        self.message_logger.removeHandler(report)
+        report.seed = self.seed
+        report.options = self.options
+        report.main_result = result
+        report.logged_results = self.results_handler.results
+        report.stage_summary = [{'name' : s.__name__,
+                                 'execution_times' : s.execution_times}
+                                for s in self.stages.values()]
+        # plotting
+        plots = []
+        for p in self.plot_functions:
+            fig = p(self.results_handler.results)
+            fig.draw()
+            plots.append(fig)
+        report.plots = plots
+        report.end_time = time.time()
+        return report
