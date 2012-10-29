@@ -53,7 +53,7 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None,
 
     cache = cache# or CacheStub()
     results_logger = logging.getLogger("Results")
-    return Experiment(name, logger, results_logger, options, cache, seed)
+    return Experiment(name, logger, results_logger, options.dict(), cache, seed)
 
 
 def create_basic_Experiment(seed = 123456):
