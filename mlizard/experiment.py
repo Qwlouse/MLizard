@@ -81,6 +81,13 @@ class Experiment(object):
         options.update(self.options[section_name])
         return OptionContext(options, self.stages.values())
 
+    def optionsets(self, section_names):
+        for sn in section_names:
+            o = self.optionset(sn)
+            o.__enter__()
+            yield o
+            o.__exit__(None, None, None)
+
     def convert_to_stage_function(self, f):
         if isinstance(f, StageFunction): # do nothing if it is already a stage
             # do we need to allow beeing stage of multiple experiments?
@@ -191,11 +198,11 @@ class OptionContext(object):
     def __enter__(self):
         return self
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
     def keys(self):
         return self.options.keys()
 
     def __getitem__(self, item):
         return self.options[item]
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
