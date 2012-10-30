@@ -62,7 +62,9 @@ Stage Logs
             seed = report.seed,
             options = "\n".join("{} = {}".format(k, v)
                                 for k,v in report.options.items()),
-            stage_summary = "\n".join(str(s) for s in report.stage_summary),
+            stage_summary = "\n".join("%d x %s : %s"%(len(s['execution_times']),
+                                                      s['name'],
+                                                      ", ".join('%2.2fs'%t for t in s['execution_times'])) for s in report.stage_summary),
             main_result = report.main_result,
             logged_results = "\n".join("{} = {}".format(k, v)
                                     for k,v in report.logged_results.items()),

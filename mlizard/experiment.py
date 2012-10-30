@@ -41,6 +41,8 @@ ROADMAP:
 from __future__ import division, print_function, unicode_literals
 
 from copy import copy
+import inspect
+import os
 import log
 from matplotlib import pyplot as plt
 import numpy as np
@@ -130,7 +132,17 @@ class Experiment(object):
             plt.ioff()
             plt.show()
             formatter = PlainTextReportFormatter()
-            print(formatter.format(report))
+            if 'report_filename' in self.options:
+                if 'basedir' in self.options:
+                    basedir = self.options['basedir']
+                else :
+                    experiment_file = inspect.getabsfile(f)
+                    basedir = os.path.dirname(experiment_file)
+                report_path = os.path.join(basedir, self.options['report_filename'])
+                with open(report_path, 'w') as f:
+                    f.write(formatter.format(report))
+            else:
+                print(formatter.format(report))
             sys.exit(0)
         return self
 
