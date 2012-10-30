@@ -119,30 +119,31 @@ class Experiment(object):
         self.plot_functions.append(f)
         return f
 
+    def set_paths(self, main_file):
+        if 'results_dir' in self.options:
+            self.results_dir = self.options.results_dir
+        else :
+            self.results_dir = os.path.dirname(main_file)
+        if not os.path.exists(self.results_dir):
+            self.message_logger.warn("results_dir '%s' does not exist. No results will be written.", self.results_dir)
+            self.results_dir = None
+
 
     def main(self, f):
         assert self.main_stage is None, "Only one main stage is allowed!"
         self.main_stage = self.convert_to_stage_function(f)
+        main_file = inspect.getabsfile(f)
+        self.set_paths(main_file)
         if f.__module__ == "__main__":
             import sys
             args = sys.argv[1:]
             ######## run main #########
             report = self(*args)
             ###########################
+            self.write_report(report)
+            # show all plots and wait
             plt.ioff()
             plt.show()
-            formatter = PlainTextReportFormatter()
-            if 'report_filename' in self.options:
-                if 'basedir' in self.options:
-                    basedir = self.options['basedir']
-                else :
-                    experiment_file = inspect.getabsfile(f)
-                    basedir = os.path.dirname(experiment_file)
-                report_path = os.path.join(basedir, self.options['report_filename'])
-                with open(report_path, 'w') as f:
-                    f.write(formatter.format(report))
-            else:
-                print(formatter.format(report))
             sys.exit(0)
         return self
 
@@ -169,6 +170,16 @@ class Experiment(object):
         report.plots = plots
         report.end_time = time.time()
         return report
+
+    def write_report(self, report):
+        formatter = PlainTextReportFormatter()
+        if 'report_filename' in self.options and self.results_dir:
+            report_path = os.path.join(self.results_dir, self.options['report_filename'])
+            with open(report_path, 'w') as f:
+                f.write(formatter.format(report))
+        else:
+            print(formatter.format(report))
+
 
 class OptionContext(object):
     def __init__(self, options, stage_functions):
