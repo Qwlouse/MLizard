@@ -68,6 +68,7 @@ class Experiment(object):
         self.stages = dict()
         self.main_stage = None
         self.plot_functions = []
+        self.live_plots = []
 
         if seed is None:
             seed = np.random.randint(*RANDOM_SEED_RANGE)
@@ -125,6 +126,12 @@ class Experiment(object):
         """decorator to generate plots"""
         self.plot_functions.append(f)
         return f
+
+    def live_plot(self, f):
+        if not inspect.isgeneratorfunction(f):
+            raise TypeError("Live plots must be generator functions!")
+        self.live_plots.append(f)
+        self.results_handler.add_plot(f)
 
     def set_paths(self, main_file):
         if 'results_dir' in self.options:
