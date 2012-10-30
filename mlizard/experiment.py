@@ -191,6 +191,9 @@ class OptionContext(object):
     def __enter__(self):
         return self
 
+    def keys(self):
+        return self.options.keys()
+
     def __getitem__(self, item):
         return self.options[item]
 
