@@ -48,6 +48,7 @@ class StageFunction(object):
         assert_no_unexpected_kwargs(self.signature, kwargs)
         assert_no_duplicate_args(self.signature, args, kwargs)
         arguments = apply_options(self.signature, args, kwargs, options)
+        self.message_logger.debug("Called with %s", arguments)
         self.add_random_arg_to(arguments)
         # use arguments without logger as cache-key
         key = (self.source, dict(arguments))
