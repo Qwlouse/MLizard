@@ -180,5 +180,8 @@ class OptionContext(object):
     def __enter__(self):
         return self
 
+    def __getitem__(self, item):
+        return self.options[item]
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
