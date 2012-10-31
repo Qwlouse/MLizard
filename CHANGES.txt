@@ -1,2 +1,12 @@
+v0.12 31.10.2012 -- report writing and many small features
+- added basic report writing
+- main stage accepts magic arguments
+- basic command line parsing for main stage
+- some fixes to magic arguments
+- experiment factory moved to mlizard.createExperiment
+- OptionContext now behaves as option dict and is kw-unpackable
+- added convenience method ex.optionsets for iterating different OptionContexts
+- very basic logging configuration via config file/string
+
 v0.11 26.10.2012 -- added facilities to incorporate live-plots
 v0.1, 22.10.2012 -- Initial release.
