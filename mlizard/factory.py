@@ -4,6 +4,7 @@ from __future__ import division, print_function, unicode_literals
 
 from configobj import ConfigObj
 import logging
+import logging.config
 from StringIO import StringIO
 
 from experiment import Experiment
@@ -40,8 +41,35 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None,
         options = ConfigObj(StringIO(str(config_string)),
             unrepr=True,
             encoding="UTF8")
+    options = options.dict()
 
     # setup logging
+    if "Logging" in options:
+        # assume Logger is dict
+        log_options = options['Logging']
+        # setup configuration dict for logging.config
+        log_config = {'version':1}
+        # create base logger
+        experiment_logger = {}
+        for key in ['level', 'propagate', 'filters', 'handlers',
+                    'Level', 'Propagate', 'Filters', 'Handlers'] :
+            if key in log_options:
+                experiment_logger[key.lower()] = log_options[key]
+        log_config['loggers'] = {name : experiment_logger}
+        logging.config.dictConfig(log_config)
+        logger = logging.getLogger(name)
+        ## Handlers
+        if 'handlers' not in experiment_logger:
+            ch = logging.StreamHandler()
+            formatter = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
+            ch.setFormatter(formatter)
+            logger.addHandler(ch)
+
+
+
+
+
+
     if logger is None:
         logger = create_basic_stream_logger(name)
         package_logger.info("No Logger configured: Using generic stdout Logger")
@@ -53,7 +81,7 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None,
 
     cache = cache# or CacheStub()
     results_logger = logging.getLogger("Results")
-    return Experiment(name, logger, results_logger, options.dict(), cache, seed)
+    return Experiment(name, logger, results_logger, options, cache, seed)
 
 
 def create_basic_Experiment(seed = 123456):
