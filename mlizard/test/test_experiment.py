@@ -113,6 +113,18 @@ def test_stage_keeps_explicit_arguments():
 
     assert_equal(foo(0, beta=0), (0, 0))
 
+def test_stage_explicit_arguments_overwrite_all():
+    ex1 = create_basic_Experiment()
+    ex1.options["alpha"] = 0.7
+    ex1.options["beta"] = 1.2
+
+    @ex1.stage
+    def foo(alpha, beta=10):
+        return alpha, beta
+
+    assert_equal(foo(0, 0), (0, 0))
+
+
 @raises(TypeError)
 def test_stage_with_unexpected_kwarg_raises_TypeError():
     ex1 = create_basic_Experiment()
@@ -142,6 +154,27 @@ def test_stage_with_missing_arguments_raises_TypeError():
 
     #noinspection PyArgumentList
     foo(1)
+
+@raises(TypeError)
+def test_stage_with_vararg_raises_TypeError():
+    ex1 = create_basic_Experiment()
+    @ex1.stage
+    def foo(*args): pass
+
+@raises(TypeError)
+def test_stage_with_kw_wildcard_raises_TypeError():
+    ex1 = create_basic_Experiment()
+    @ex1.stage
+    def foo(**kwargs): pass
+
+@raises(TypeError)
+def test_stage_with_too_many_args_raises_TypeError():
+    ex1 = create_basic_Experiment()
+    @ex1.stage
+    def foo(a, b=5): pass
+
+    foo(1, 2, 3)
+
 
 def test_experiment_reads_options_from_file():
     with NamedTemporaryFile() as f:

@@ -27,6 +27,10 @@ class StageFunction(object):
         # extract extra info
         self.source = str(inspect.getsource(f))
         self.signature = get_signature(f)
+        if self.signature['varargs_name'] :
+            raise TypeError("*args not supported by StageFunction")
+        if self.signature['kw_wildcard_name'] :
+            raise TypeError("**kwargs not supported by StageFunction")
         # some configuration
         self.caching_threshold = 2 # seconds
         self.do_cache_results = True
@@ -152,6 +156,9 @@ def apply_options(signature, args, kwargs, options):
     arguments.update(signature['kwargs']) # weakest: default arguments:
     arguments.update((v, options[v]) for v in signature['args'] if v in options)
     arguments.update(kwargs) # keyword arguments
-    positional_arguments = dict(zip(signature['positional'], args))
+    if len(args) > len(signature['args']):
+        raise TypeError("{}() takes at most {} arguments ({} given)".format(
+                        signature['name'], len(signature['args']), len(args)))
+    positional_arguments = dict(zip(signature['args'], args))
     arguments.update(positional_arguments) # strongest: positional arguments
     return arguments
