@@ -3,8 +3,9 @@ setup.py
 mlizard/__init__.py
 mlizard/caches.py
 mlizard/experiment.py
-mlizard/function_helpers.py
+mlizard/factory.py
 mlizard/log.py
+mlizard/report.py
 mlizard/stage.py
 mlizard/test/__init__.py
 mlizard/test/helpers.py

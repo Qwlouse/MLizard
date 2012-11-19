@@ -8,12 +8,30 @@
 from distutils.core import setup
 import mlizard
 
+classifiers = """
+Development Status :: 3 - Alpha
+Intended Audience :: Science/Research
+License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Natural Language :: English
+Operating System :: OS Independent
+Programming Language :: Python
+Programming Language :: Python :: 2.7
+Topic :: Utilities
+Topic :: Adaptive Technologies
+Topic :: Scientific/Engineering
+Topic :: Scientific/Engineering :: Artificial Intelligence
+Topic :: Software Development :: Libraries
+Topic :: Software Development :: Quality Assurance
+"""
+
+
 setup(
     name='MLizard',
     version=mlizard.__version__,
     author='Klaus Greff',
     author_email='klaus.greff@gmx.net',
     packages=['mlizard', 'mlizard.test'],
+    classifiers=filter(None, classifiers.split('\n')),
     scripts=[],
     url='http://pypi.python.org/pypi/MLizard/',
     license='LICENSE.txt',

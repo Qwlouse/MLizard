@@ -47,4 +47,5 @@ pip-log.txt
 # Data Files
 Data
 
+# The manifest file
 MANIFEST
