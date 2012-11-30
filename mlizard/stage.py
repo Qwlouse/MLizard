@@ -5,22 +5,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import division, print_function, unicode_literals
+from copy import copy
 import numpy as np
 import inspect
 import time
 from log import StageFunctionLoggerFacade, ResultLogHandler
-from report import Report
+
 
 class StageFunction(object):
     def __init__(self, name, f, cache, options, message_logger, results_logger,
-                 seed):
+                 db_interface, seed):
         self.function = f
         self.message_logger = message_logger
         self.results_logger = results_logger
+        self.seed = seed
         self.random = np.random.RandomState(seed)
         self.cache = cache
         self.options = options
-        # preserve meta_information
+        # preserve some meta_information
         self.__name__ = name
         self.func_name = name
         self.__doc__ = f.__doc__
@@ -36,6 +38,7 @@ class StageFunction(object):
         self.do_cache_results = True
         # internal state
         self.execution_times = []
+        self.db_interface = db_interface
 
     def add_random_arg_to(self, arguments):
         if 'rnd' in self.signature['args']  and 'rnd' not in arguments:
@@ -58,6 +61,8 @@ class StageFunction(object):
         key = (self.source, dict(arguments))
         log_facade = self.add_logger_arg_to(arguments)
         assert_no_missing_args(self.signature, arguments)
+        start_time = time.time()
+        db_entry = self.create_db_entry(arguments, start_time)
         # do we want to cache?
         if self.cache and self.do_cache_results:
             # Check for cached version
@@ -66,6 +71,8 @@ class StageFunction(object):
                 log_facade.set_result(**result_logs)
                 self.message_logger.info("Retrieved results from cache. "
                                          "Skipping Execution")
+                stop_time = time.time()
+                self.finalize_db_entry(db_entry, stop_time, result, result_logs, True)
                 return result
             except KeyError:
                 pass
@@ -73,15 +80,15 @@ class StageFunction(object):
         #### Run the function ####
         local_results_handler = ResultLogHandler()
         self.results_logger.addHandler(local_results_handler)
-        start_time = time.time()
         result = self.function(**arguments) #<<=====
-        self.execution_times.append(time.time() - start_time)
+        stop_time = time.time()
+        self.execution_times.append(stop_time - start_time)
         self.message_logger.info("Completed in %2.2f sec",
                                  self.execution_times[-1])
         result_logs = local_results_handler.results
         self.results_logger.removeHandler(local_results_handler)
         ##########################
-
+        self.finalize_db_entry(db_entry, stop_time, result, result_logs, False)
         if self.cache and \
            self.do_cache_results and \
            self.execution_times[-1] > self.caching_threshold:
@@ -95,6 +102,30 @@ class StageFunction(object):
 
     def __hash__(self):
         return hash(self.source)
+
+    def create_db_entry(self, arguments, start_time):
+        #remove rnd and logger
+        args = copy(arguments)
+        if 'logger' in args:
+            del args['logger']
+        if 'rnd' in args:
+            del args['rnd']
+        db_entry = dict(
+            name=self.__name__,
+            start_time=start_time,
+            arguments=args,
+            seed=self.seed
+        )
+        self.db_interface.save(db_entry)
+        return db_entry
+
+    def finalize_db_entry(self, db_entry, stop_time, result, logged_results, is_from_cache):
+        db_entry['stop_time'] = stop_time
+        db_entry['execution_time'] = stop_time - db_entry['start_time']
+        db_entry['logged_results'] = logged_results
+        db_entry['result'] = result
+        db_entry['is_from_cache'] = is_from_cache
+        self.db_interface.save(db_entry)
 
 
 class StageFunctionOptionsView(object):
