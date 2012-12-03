@@ -57,10 +57,10 @@ __all__ = ['Experiment']
 RANDOM_SEED_RANGE = 0, 1000000
 
 class Experiment(object):
-    def __init__(self, name, message_logger, results_logger, options, cache,
-                 seed = None, db=None):
+    def __init__(self, name, reporter, message_logger, results_logger, options,
+                 cache, seed = None, db=None):
         self.name = name
-        self.message_logger = message_logger
+        self.reporter = reporter
         self.results_logger = results_logger
         self.options = options
         self.cache = cache
@@ -99,7 +99,7 @@ class Experiment(object):
             return f
         else :
             stage_name = f.func_name
-            stage_msg_logger = self.message_logger.getChild(stage_name)
+            stage_msg_logger = self.reporter.get_message_logger_for(stage_name)
             stage_results_logger = self.results_logger.getChild(stage_name)
             stage_seed = self.prng.randint(*RANDOM_SEED_RANGE)
             return StageFunction(stage_name, f, self.cache, self.options,
@@ -144,7 +144,7 @@ class Experiment(object):
         else :
             self.results_dir = os.path.dirname(main_file)
         if not os.path.exists(self.results_dir):
-            self.message_logger.warn("results_dir '%s' does not exist. No results will be written.", self.results_dir)
+            self.reporter.warn("results_dir '%s' does not exist. No results will be written.", self.results_dir)
             self.results_dir = None
 
 
@@ -167,6 +167,8 @@ class Experiment(object):
         return self
 
     def __call__(self, *args, **kwargs):
+        report = self.reporter.create_report()
+        report.experiment_started(self.options, self.seed)
         self.db_entry = dict(
             name=self.name,
             options=self.options,
@@ -174,7 +176,7 @@ class Experiment(object):
             stages=[])
         self.db.save(self.db_entry)
         self.stage_db_interface.db_entry = self.db_entry
-        report = Report(self.name)
+
         self.message_logger.addHandler(report)
         ######## call stage #########
         result = self.main_stage.execute_function(args, kwargs, self.options)
