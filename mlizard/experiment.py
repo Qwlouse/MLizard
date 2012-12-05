@@ -47,6 +47,7 @@ import log
 from matplotlib import pyplot as plt
 import numpy as np
 import time
+from mlizard.db import StageDBInterface
 
 from report import Report, PlainTextReportFormatter
 from stage import StageFunctionOptionsView, StageFunction
@@ -56,10 +57,10 @@ __all__ = ['Experiment']
 RANDOM_SEED_RANGE = 0, 1000000
 
 class Experiment(object):
-    def __init__(self, name, message_logger, results_logger, options, cache,
-                 seed = None):
+    def __init__(self, name, reporter, message_logger, results_logger, options,
+                 cache, seed = None, db=None):
         self.name = name
-        self.message_logger = message_logger
+        self.reporter = reporter
         self.results_logger = results_logger
         self.options = options
         self.cache = cache
@@ -76,6 +77,9 @@ class Experiment(object):
                                 "file to repeat experiment".format(seed))
         self.seed = seed
         self.prng = np.random.RandomState(seed)
+        self.db = db
+        self.db_entry = None
+        self.stage_db_interface = StageDBInterface(self.db)
 
     def optionset(self, section_name):
         options = copy(self.options)
@@ -91,15 +95,16 @@ class Experiment(object):
 
     def convert_to_stage_function(self, f):
         if isinstance(f, StageFunction): # do nothing if it is already a stage
-            # do we need to allow beeing stage of multiple experiments?
+            # do we need to allow being stage of multiple experiments?
             return f
         else :
             stage_name = f.func_name
-            stage_msg_logger = self.message_logger.getChild(stage_name)
+            stage_msg_logger = self.reporter.get_message_logger_for(stage_name)
             stage_results_logger = self.results_logger.getChild(stage_name)
             stage_seed = self.prng.randint(*RANDOM_SEED_RANGE)
             return StageFunction(stage_name, f, self.cache, self.options,
-                stage_msg_logger, stage_results_logger, stage_seed)
+                stage_msg_logger, stage_results_logger, self.stage_db_interface,
+                stage_seed)
 
     def stage(self, f):
         """
@@ -117,7 +122,7 @@ class Experiment(object):
         Errors are still thrown if:
         - you pass an unexpected keyword argument
         - you provide multiple values for an argument
-        - after all the filling an argument is still missing"""
+        - after all the filling, an argument is still missing"""
         stage = self.convert_to_stage_function(f)
         self.stages[stage.__name__] = stage
         return stage
@@ -139,7 +144,7 @@ class Experiment(object):
         else :
             self.results_dir = os.path.dirname(main_file)
         if not os.path.exists(self.results_dir):
-            self.message_logger.warn("results_dir '%s' does not exist. No results will be written.", self.results_dir)
+            self.reporter.warn("results_dir '%s' does not exist. No results will be written.", self.results_dir)
             self.results_dir = None
 
 
@@ -162,7 +167,16 @@ class Experiment(object):
         return self
 
     def __call__(self, *args, **kwargs):
-        report = Report(self.name)
+        report = self.reporter.create_report()
+        report.experiment_started(self.options, self.seed)
+        self.db_entry = dict(
+            name=self.name,
+            options=self.options,
+            seed=self.seed,
+            stages=[])
+        self.db.save(self.db_entry)
+        self.stage_db_interface.db_entry = self.db_entry
+
         self.message_logger.addHandler(report)
         ######## call stage #########
         result = self.main_stage.execute_function(args, kwargs, self.options)

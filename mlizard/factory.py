@@ -9,6 +9,7 @@ from StringIO import StringIO
 
 from experiment import Experiment
 from mlizard.caches import CacheStub
+from mlizard.db import DummyDB
 
 NO_LOGGER = logging.getLogger('ignore')
 NO_LOGGER.disabled = 1
@@ -26,7 +27,7 @@ def create_basic_stream_logger(name, level=logging.INFO):
 package_logger = create_basic_stream_logger('MLizard')
 
 def createExperiment(name = "Experiment", config_file=None, config_string=None,
-                     logger=None, seed=None, cache=None):
+                     logger=None, seed=None, cache=None, db=None):
     # reading configuration
     options = ConfigObj(unrepr=True)
     if config_file is not None:
@@ -65,11 +66,6 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None,
             ch.setFormatter(formatter)
             logger.addHandler(ch)
 
-
-
-
-
-
     if logger is None:
         logger = create_basic_stream_logger(name)
         package_logger.info("No Logger configured: Using generic stdout Logger")
@@ -80,8 +76,9 @@ def createExperiment(name = "Experiment", config_file=None, config_string=None,
             seed = options['seed']
 
     cache = cache# or CacheStub()
+    db = db or DummyDB()
     results_logger = logging.getLogger("Results")
-    return Experiment(name, logger, results_logger, options, cache, seed)
+    return Experiment(name, logger, results_logger, options, cache, seed, db)
 
 
 def create_basic_Experiment(seed = 123456):

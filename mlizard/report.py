@@ -5,6 +5,31 @@ from __future__ import division, print_function, unicode_literals
 import logging
 import time
 
+class Reporter(object):
+    def __init__(self, name, message_logger):
+        self.experiment_name = name
+        self.message_logger = message_logger
+        # just use debug, info, ... from message logger
+        self.debug = self.message_logger.debug
+        self.info = self.message_logger.info
+        self.warning = self.message_logger.warning
+        self.error = self.message_logger.error
+        self.critical = self.message_logger.critical
+        self.log = self.message_logger.log
+        self.exception = self.message_logger.exception
+
+
+
+    def create_report(self):
+        report = Report(self.experiment_name)
+        self.message_logger.addHandler(report)
+        return report
+
+    def get_message_logger_for(self, stagename):
+        return self.message_logger.get_child(stagename)
+
+
+
 class Report(logging.Handler):
     def __init__(self, experiment_name):
         super(Report, self).__init__()
@@ -18,6 +43,10 @@ class Report(logging.Handler):
         self.logged_results = {}
         self.log_records = []
         self.plots = []
+
+    def experiment_started(self, options, seed):
+        self.options = options
+        self.seed = seed
 
 
     def emit(self, record):
