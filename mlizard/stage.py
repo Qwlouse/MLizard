@@ -48,19 +48,28 @@ class StageFunction(object):
         l = StageFunctionLoggerFacade(self.message_logger, self.results_logger)
         if 'logger' in self.signature['args']:
             arguments['logger'] = l
-        return l
 
-    def execute_function(self, args, kwargs, options):
-        # Modify Arguments
+
+    def construct_arguments(self, args, kwargs, options):
         assert_no_unexpected_kwargs(self.signature, kwargs)
         assert_no_duplicate_args(self.signature, args, kwargs)
         arguments = apply_options(self.signature, args, kwargs, options)
-        self.message_logger.debug("Called with %s", arguments)
         self.add_random_arg_to(arguments)
-        # use arguments without logger as cache-key
-        key = (self.source, dict(arguments))
-        log_facade = self.add_logger_arg_to(arguments)
+        self.add_logger_arg_to(arguments)
         assert_no_missing_args(self.signature, arguments)
+        return arguments
+
+    def get_key(self, arguments):
+        # use arguments without logger as cache-key
+        a = copy(arguments)
+        if 'logger' in arguments: del a['logger']
+        return self.source, a
+
+
+    def execute_function(self, args, kwargs, options):
+        arguments = self.construct_arguments(args, kwargs, options)
+        self.message_logger.debug("Called with %s", arguments)
+        key = self.get_key(arguments)
         start_time = time.time()
         db_entry = self.create_db_entry(arguments, start_time)
         # do we want to cache?
@@ -68,7 +77,7 @@ class StageFunction(object):
             # Check for cached version
             try:
                 result, result_logs = self.cache[key]
-                log_facade.set_result(**result_logs)
+                arguments['logger'].set_result(**result_logs)
                 self.message_logger.info("Retrieved results from cache. "
                                          "Skipping Execution")
                 stop_time = time.time()
