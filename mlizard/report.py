@@ -5,11 +5,16 @@ from __future__ import division, print_function, unicode_literals
 import logging
 import time
 
-class Reporter(object):
+IDLE, STARTED, STAGE_RUNNING, FINISHED = range(4)
+
+class Reporter(logging.Handler):
     def __init__(self, name, message_logger):
+        super(Reporter, self).__init__()
         self.experiment_name = name
         self.message_logger = message_logger
-        # just use debug, info, ... from message logger
+        self.log_records = []
+        self.mode = IDLE
+        # provide debug, info, ... from message_logger
         self.debug = self.message_logger.debug
         self.info = self.message_logger.info
         self.warning = self.message_logger.warning
@@ -18,7 +23,19 @@ class Reporter(object):
         self.log = self.message_logger.log
         self.exception = self.message_logger.exception
 
+    def experiment_started(self, options, seed):
+        self.ex_start_time = time.time()
+        self.options = options
+        self.seed = seed
+        self.log_records = []
+        self.mode = STARTED
 
+    def experiment_completed(self):
+        self.mode = FINISHED
+        self.ex_stop_time = time.time()
+
+    def emit(self, record):
+        self.log_records.append(record)
 
     def create_report(self):
         report = Report(self.experiment_name)

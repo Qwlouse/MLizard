@@ -104,7 +104,7 @@ class Experiment(object):
             stage_seed = self.prng.randint(*RANDOM_SEED_RANGE)
             return StageFunction(stage_name, f, self.cache, self.options,
                 stage_msg_logger, stage_results_logger, self.stage_db_interface,
-                stage_seed)
+                stage_seed, self.reporter)
 
     def stage(self, f):
         """
@@ -167,37 +167,22 @@ class Experiment(object):
         return self
 
     def __call__(self, *args, **kwargs):
-        report = self.reporter.create_report()
-        report.experiment_started(self.options, self.seed)
-        self.db_entry = dict(
-            name=self.name,
-            options=self.options,
-            seed=self.seed,
-            stages=[])
-        self.db.save(self.db_entry)
-        self.stage_db_interface.db_entry = self.db_entry
+        self.reporter.experiment_started(self.options, self.seed)
 
-        self.message_logger.addHandler(report)
         ######## call stage #########
         result = self.main_stage.execute_function(args, kwargs, self.options)
         #############################
-        self.message_logger.removeHandler(report)
-        report.seed = self.seed
-        report.options = self.options
-        report.main_result = result
-        report.logged_results = self.results_handler.results
-        report.stage_summary = [{'name' : s.__name__,
-                                 'execution_times' : s.execution_times}
-                                for s in self.stages.values()]
+
+        #report.logged_results = self.results_handler.results
+
         # plotting
         plots = []
         for p in self.plot_functions:
             fig = p(self.results_handler.results)
             fig.draw()
             plots.append(fig)
-        report.plots = plots
-        report.end_time = time.time()
-        return report
+        #report.plots = plots
+        return self.reporter.create_report()
 
     def write_report(self, report):
         formatter = PlainTextReportFormatter()

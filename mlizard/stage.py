@@ -14,7 +14,7 @@ from log import StageFunctionLoggerFacade, ResultLogHandler
 
 class StageFunction(object):
     def __init__(self, name, f, cache, options, message_logger, results_logger,
-                 db_interface, seed):
+                 db_interface, seed, reporter):
         self.function = f
         self.message_logger = message_logger
         self.results_logger = results_logger
@@ -22,6 +22,7 @@ class StageFunction(object):
         self.random = np.random.RandomState(seed)
         self.cache = cache
         self.options = options
+        self.reporter = reporter
         # preserve some meta_information
         self.__name__ = name
         self.func_name = name
@@ -69,9 +70,8 @@ class StageFunction(object):
     def execute_function(self, args, kwargs, options):
         arguments = self.construct_arguments(args, kwargs, options)
         self.message_logger.debug("Called with %s", arguments)
+        t_start = self.reporter.stage_started(self.__name__, arguments)
         key = self.get_key(arguments)
-        start_time = time.time()
-        db_entry = self.create_db_entry(arguments, start_time)
         # do we want to cache?
         if self.cache and self.do_cache_results:
             # Check for cached version
@@ -80,26 +80,20 @@ class StageFunction(object):
                 arguments['logger'].set_result(**result_logs)
                 self.message_logger.info("Retrieved results from cache. "
                                          "Skipping Execution")
-                stop_time = time.time()
-                self.finalize_db_entry(db_entry, stop_time, result, result_logs, True)
+                self.reporter.stage_completed(result, result_logs, True)
                 return result
             except KeyError:
                 pass
-
         #### Run the function ####
         local_results_handler = ResultLogHandler()
         self.results_logger.addHandler(local_results_handler)
         result = self.function(**arguments) #<<=====
-        stop_time = time.time()
-        self.execution_times.append(stop_time - start_time)
-        self.message_logger.info("Completed in %2.2f sec",
-                                 self.execution_times[-1])
         result_logs = local_results_handler.results
         self.results_logger.removeHandler(local_results_handler)
+        t_stop = self.reporter.stage_completed(result, result_logs, False)
+        self.message_logger.info("Completed in %2.2f sec", t_stop - t_start)
         ##########################
-        self.finalize_db_entry(db_entry, stop_time, result, result_logs, False)
-        if self.cache and \
-           self.do_cache_results and \
+        if self.cache and self.do_cache_results and \
            self.execution_times[-1] > self.caching_threshold:
             self.message_logger.info("Execution took more than %2.2f sec so we "
                                      "cache the result."%self.caching_threshold)
