@@ -48,7 +48,7 @@ class StageFunction(object):
     def emit_started(self, start_time, arguments, cache_key):
         for o in self.observers:
             try:
-                o.stage_started_event(start_time, arguments, cache_key)
+                o.stage_started_event(self.__name__, start_time, arguments, cache_key)
             except AttributeError:
                 pass
 
