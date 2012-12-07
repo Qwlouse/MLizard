@@ -164,7 +164,6 @@ class Experiment(object):
             ######## run main #########
             report = self(*args)
             ###########################
-            self.write_report(report)
             # show all plots and wait
             plt.ioff()
             plt.show()

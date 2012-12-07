@@ -27,7 +27,7 @@ class ExperimentObserver(object):
         pass
 
 class CouchDBReporter(ExperimentObserver):
-    def __init__(self, url=None, db_name='MLizard_Experiments'):
+    def __init__(self, url=None, db_name="mlizard_experiments"):
         import couchdb
         if url :
             couch = couchdb.Server(url)
@@ -39,7 +39,7 @@ class CouchDBReporter(ExperimentObserver):
         else:
             self.db = couch.create(db_name)
         self.experiment_entry = dict()
-        self.stack = []
+        self.stack = [self.experiment_entry]
 
     def save(self):
         self.db.save(self.experiment_entry)
