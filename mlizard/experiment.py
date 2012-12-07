@@ -8,9 +8,6 @@
 The amazing Experiment class i dreamt up recently.
 It should be a kind of ML-Experiment-build-system-checkpointer-...
 ROADMAP:
- ### Report
- ? maybe have a database to store important facts about experiments,
-   so you could easily query what you tried and what resulted
 
  ### Caching
  - make caching key independent of comments and docstring of the stage
@@ -24,9 +21,6 @@ ROADMAP:
  ### Stage Repetition
  - count how often a stage was executed and log that
  V automatic repetition of a stage with mean and var of the result
-
- ### Main method
- - main should also parse command line arguments
 
  ### Version Control integration
  ! automatize rerunning an experiment by checking out the appropriate version
@@ -57,10 +51,11 @@ __all__ = ['Experiment']
 RANDOM_SEED_RANGE = 0, 1000000
 
 class Experiment(object):
-    def __init__(self, name, reporter, message_logger, results_logger, options,
-                 cache, seed = None, db=None):
+    def __init__(self, name, message_logger, results_logger, options,
+                 cache, observers=None, seed=None):
         self.name = name
-        self.reporter = reporter
+        self.observers = observers or []
+        self.message_logger = message_logger
         self.results_logger = results_logger
         self.options = options
         self.cache = cache
@@ -68,8 +63,8 @@ class Experiment(object):
         self.results_logger.addHandler(self.results_handler)
         self.stages = dict()
         self.main_stage = None
-        self.plot_functions = []
-        self.live_plots = []
+        self.plot_functions = []#TODO move to some observer
+        self.live_plots = []#TODO move to some observer
 
         if seed is None:
             seed = np.random.randint(*RANDOM_SEED_RANGE)
@@ -77,10 +72,41 @@ class Experiment(object):
                                 "file to repeat experiment".format(seed))
         self.seed = seed
         self.prng = np.random.RandomState(seed)
-        self.db = db
-        self.db_entry = None
-        self.stage_db_interface = StageDBInterface(self.db)
+        self.emit_created()
 
+    ################### Observable interface ###################################
+    def add_observer(self, obs):
+        if not obs in self.observers:
+            self.observers.append(obs)
+
+    def remove_observer(self, obs):
+        if obs in self.observers:
+            self.observers.remove(obs)
+
+    def emit_created(self):
+        for o in self.observers:
+            try:
+                o.experiment_created_event(self.name, self.options)
+            except AttributeError:
+                pass
+
+    def emit_started(self, args, kwargs):
+        start_time = time.time()
+        for o in self.observers:
+            try:
+                o.experiment_started_event(start_time, self.seed, args, kwargs)
+            except AttributeError:
+                pass
+
+    def emit_completed(self, result):
+        stop_time = time.time()
+        for o in self.observers:
+            try:
+                o.experiment_completed_event(stop_time, result)
+            except AttributeError:
+                pass
+
+    ################### Option set methods #####################################
     def optionset(self, section_name):
         options = copy(self.options)
         options.update(self.options[section_name])
@@ -99,13 +125,14 @@ class Experiment(object):
             return f
         else :
             stage_name = f.func_name
-            stage_msg_logger = self.reporter.get_message_logger_for(stage_name)
+            stage_msg_logger = self.message_logger.getChild(stage_name)
             stage_results_logger = self.results_logger.getChild(stage_name)
             stage_seed = self.prng.randint(*RANDOM_SEED_RANGE)
             return StageFunction(stage_name, f, self.cache, self.options,
-                stage_msg_logger, stage_results_logger, self.stage_db_interface,
-                stage_seed, self.reporter)
+                stage_msg_logger, stage_results_logger, stage_seed,
+                self.observers)
 
+    ################### Adding Stage functions #################################
     def stage(self, f):
         """
         Decorator, that converts the function into a stage of this experiment.
@@ -127,27 +154,6 @@ class Experiment(object):
         self.stages[stage.__name__] = stage
         return stage
 
-    def plot(self, f):
-        """decorator to generate plots"""
-        self.plot_functions.append(f)
-        return f
-
-    def live_plot(self, f):
-        if not inspect.isgeneratorfunction(f):
-            raise TypeError("Live plots must be generator functions!")
-        self.live_plots.append(f)
-        self.results_handler.add_plot(f)
-
-    def set_paths(self, main_file):
-        if 'results_dir' in self.options:
-            self.results_dir = self.options.results_dir
-        else :
-            self.results_dir = os.path.dirname(main_file)
-        if not os.path.exists(self.results_dir):
-            self.reporter.warn("results_dir '%s' does not exist. No results will be written.", self.results_dir)
-            self.results_dir = None
-
-
     def main(self, f):
         assert self.main_stage is None, "Only one main stage is allowed!"
         self.main_stage = self.convert_to_stage_function(f)
@@ -166,8 +172,9 @@ class Experiment(object):
             sys.exit(0)
         return self
 
+    ############################ Calling #######################################
     def __call__(self, *args, **kwargs):
-        self.reporter.experiment_started(self.options, self.seed)
+        self.emit_started(args, kwargs)
 
         ######## call stage #########
         result = self.main_stage.execute_function(args, kwargs, self.options)
@@ -182,9 +189,29 @@ class Experiment(object):
             fig.draw()
             plots.append(fig)
         #report.plots = plots
-        return self.reporter.create_report()
+        return self.emit_completed(result)
 
-    def write_report(self, report):
+    ############################ To Move #######################################
+    def plot(self, f): #TODO move to some observer
+        """decorator to generate plots"""
+        self.plot_functions.append(f)
+        return f
+
+    def live_plot(self, f): #TODO move to some observer
+        if not inspect.isgeneratorfunction(f):
+            raise TypeError("Live plots must be generator functions!")
+        self.live_plots.append(f)
+        self.results_handler.add_plot(f)
+
+    def set_paths(self, main_file): #TODO move to some observer
+        if 'results_dir' in self.options:
+            self.results_dir = self.options.results_dir
+        else :
+            self.results_dir = os.path.dirname(main_file)
+        if not os.path.exists(self.results_dir):
+            self.message_logger.warn("results_dir '%s' does not exist. No results will be written.", self.results_dir)
+            self.results_dir = None
+    def write_report(self, report): #TODO move to some observer
         formatter = PlainTextReportFormatter()
         if 'report_filename' in self.options and self.results_dir:
             report_path = os.path.join(self.results_dir, self.options['report_filename'])
@@ -192,6 +219,8 @@ class Experiment(object):
                 f.write(formatter.format(report))
         else:
             print(formatter.format(report))
+
+
 
 
 class OptionContext(object):
