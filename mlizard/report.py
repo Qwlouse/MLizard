@@ -7,6 +7,26 @@ import time
 
 IDLE, STARTED, STAGE_RUNNING, FINISHED = range(4)
 
+class ExperimentObserver(object):
+    def experiment_created_event(self, name, options):
+        pass
+
+    def experiment_started_event(self, start_time, seed, args, kwargs):
+        pass
+
+    def experiment_completed_event(self, stop_time, result):
+        pass
+
+    def stage_created_event(self, name, source, signature):
+        pass
+
+    def stage_started_event(self, start_time, arguments, cache_key):
+        pass
+
+    def stage_completed_event(self, stop_time, result, result_logs, from_cache):
+        pass
+
+
 class Reporter(logging.Handler):
     def __init__(self, name, message_logger):
         super(Reporter, self).__init__()
