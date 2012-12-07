@@ -128,9 +128,8 @@ class Experiment(object):
             stage_msg_logger = self.message_logger.getChild(stage_name)
             stage_results_logger = self.results_logger.getChild(stage_name)
             stage_seed = self.prng.randint(*RANDOM_SEED_RANGE)
-            return StageFunction(stage_name, f, self.cache, self.options,
-                stage_msg_logger, stage_results_logger, stage_seed,
-                self.observers)
+            return StageFunction(stage_name, f, self.options, stage_msg_logger,
+                stage_results_logger, stage_seed, self.observers, self.cache)
 
     ################### Adding Stage functions #################################
     def stage(self, f):

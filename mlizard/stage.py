@@ -13,19 +13,21 @@ from log import StageFunctionLoggerFacade, ResultLogHandler
 
 
 class StageFunction(object):
-    def __init__(self, name, f, cache, options, message_logger, results_logger,
-                 db_interface, seed, reporter):
+    def __init__(self, name, f, options, message_logger, results_logger,
+                 seed, observers, cache, do_cache=True, caching_threshold=2):
+        self.__name__ = name
+        self.func_name = name
         self.function = f
+        self.options = options
         self.message_logger = message_logger
         self.results_logger = results_logger
         self.seed = seed
         self.random = np.random.RandomState(seed)
+        self.observers = observers
         self.cache = cache
-        self.options = options
-        self.reporter = reporter
+        self.caching_threshold = caching_threshold # seconds TODO get from cache
+        self.do_cache_results = do_cache
         # preserve some meta_information
-        self.__name__ = name
-        self.func_name = name
         self.__doc__ = f.__doc__
         # extract extra info
         self.source = str(inspect.getsource(f))
@@ -34,12 +36,29 @@ class StageFunction(object):
             raise TypeError("*args not supported by StageFunction")
         if self.signature['kw_wildcard_name'] :
             raise TypeError("**kwargs not supported by StageFunction")
-        # some configuration
-        self.caching_threshold = 2 # seconds
-        self.do_cache_results = True
-        # internal state
-        self.execution_times = []
-        self.db_interface = db_interface
+        self.emit_created()
+
+    def emit_created(self):
+        for o in self.observers:
+            try:
+                o.stage_created_event(self.__name__, self.source, self.signature)
+            except AttributeError:
+                pass
+
+    def emit_started(self, start_time, arguments, cache_key):
+        for o in self.observers:
+            try:
+                o.stage_started_event(start_time, arguments, cache_key)
+            except AttributeError:
+                pass
+
+    def emit_completed(self, stop_time, result, result_logs, from_cache):
+        for o in self.observers:
+            try:
+                o.stage_completed_event(stop_time, result, result_logs, from_cache)
+            except AttributeError:
+                pass
+
 
     def add_random_arg_to(self, arguments):
         if 'rnd' in self.signature['args']  and 'rnd' not in arguments:
@@ -64,14 +83,16 @@ class StageFunction(object):
         # use arguments without logger as cache-key
         a = copy(arguments)
         if 'logger' in arguments: del a['logger']
+        #todo really hash this so key can easily be stored in db
         return self.source, a
 
 
     def execute_function(self, args, kwargs, options):
         arguments = self.construct_arguments(args, kwargs, options)
         self.message_logger.debug("Called with %s", arguments)
-        t_start = self.reporter.stage_started(self.__name__, arguments)
         key = self.get_key(arguments)
+        start_time = time.time()
+        self.emit_started(start_time, arguments, key)
         # do we want to cache?
         if self.cache and self.do_cache_results:
             # Check for cached version
@@ -80,7 +101,8 @@ class StageFunction(object):
                 arguments['logger'].set_result(**result_logs)
                 self.message_logger.info("Retrieved results from cache. "
                                          "Skipping Execution")
-                self.reporter.stage_completed(result, result_logs, True)
+                stop_time = time.time()
+                self.emit_completed(stop_time, result, result_logs, True)
                 return result
             except KeyError:
                 pass
@@ -90,11 +112,13 @@ class StageFunction(object):
         result = self.function(**arguments) #<<=====
         result_logs = local_results_handler.results
         self.results_logger.removeHandler(local_results_handler)
-        t_stop = self.reporter.stage_completed(result, result_logs, False)
-        self.message_logger.info("Completed in %2.2f sec", t_stop - t_start)
+        stop_time = time.time()
+        exec_time = stop_time - start_time
+        self.message_logger.info("Completed in %2.2f sec", exec_time)
+        self.emit_completed(stop_time, result, result_logs, False)
         ##########################
         if self.cache and self.do_cache_results and \
-           self.execution_times[-1] > self.caching_threshold:
+           exec_time > self.caching_threshold:
             self.message_logger.info("Execution took more than %2.2f sec so we "
                                      "cache the result."%self.caching_threshold)
             self.cache[key] = result, result_logs
@@ -105,30 +129,6 @@ class StageFunction(object):
 
     def __hash__(self):
         return hash(self.source)
-
-    def create_db_entry(self, arguments, start_time):
-        #remove rnd and logger
-        args = copy(arguments)
-        if 'logger' in args:
-            del args['logger']
-        if 'rnd' in args:
-            del args['rnd']
-        db_entry = dict(
-            name=self.__name__,
-            start_time=start_time,
-            arguments=args,
-            seed=self.seed
-        )
-        self.db_interface.save(db_entry)
-        return db_entry
-
-    def finalize_db_entry(self, db_entry, stop_time, result, logged_results, is_from_cache):
-        db_entry['stop_time'] = stop_time
-        db_entry['execution_time'] = stop_time - db_entry['start_time']
-        db_entry['logged_results'] = logged_results
-        db_entry['result'] = result
-        db_entry['is_from_cache'] = is_from_cache
-        self.db_interface.save(db_entry)
 
 
 class StageFunctionOptionsView(object):
