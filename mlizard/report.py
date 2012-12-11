@@ -26,29 +26,15 @@ class ExperimentObserver(object):
     def stage_completed_event(self, stop_time, result, result_logs, from_cache):
         pass
 
-class CouchDBReporter(ExperimentObserver):
-    def __init__(self, url=None, db_name="mlizard_experiments"):
-        import couchdb
-        if url :
-            couch = couchdb.Server(url)
-        else:
-            couch = couchdb.Server()
-
-        if db_name in couch:
-            self.db = couch[db_name]
-        else:
-            self.db = couch.create(db_name)
+class CompleteReporter(ExperimentObserver):
+    def __init__(self):
         self.experiment_entry = dict()
         self.stack = [self.experiment_entry]
-
-    def save(self):
-        self.db.save(self.experiment_entry)
 
     def experiment_created_event(self, name, options):
         self.experiment_entry['name'] = name
         self.experiment_entry['options'] = options
         self.experiment_entry['stages'] = {}
-        self.save()
 
     def experiment_started_event(self, start_time, seed, args, kwargs):
         self.experiment_entry['start_time'] = start_time
@@ -56,19 +42,16 @@ class CouchDBReporter(ExperimentObserver):
         self.experiment_entry['args'] = args
         self.experiment_entry['kwargs'] = kwargs
         self.experiment_entry['called'] = []
-        self.save()
 
     def experiment_completed_event(self, stop_time, result):
         self.experiment_entry['stop_time'] = stop_time
         self.experiment_entry['result'] = result
-        self.save()
 
     def stage_created_event(self, name, source, signature):
         stage_entry = dict(
             source=source,
             signature=signature)
         self.experiment_entry['stages'][name] = stage_entry
-        self.save()
 
     def stage_started_event(self, name, start_time, arguments, cache_key):
         stage_entry = dict(
@@ -80,7 +63,6 @@ class CouchDBReporter(ExperimentObserver):
             )
         self.stack[-1]['called'].append(stage_entry)
         self.stack.append(stage_entry)
-        self.save()
 
     def stage_completed_event(self, stop_time, result, result_logs, from_cache):
         stage_entry = self.stack.pop()
@@ -88,6 +70,45 @@ class CouchDBReporter(ExperimentObserver):
         stage_entry['result'] = result
         stage_entry['result_logs'] = result_logs
         stage_entry['from_cache'] = from_cache
+
+class CouchDBReporter(CompleteReporter):
+    def __init__(self, url=None, db_name='mlizard_experiments'):
+        super(CouchDBReporter, self).__init__()
+        import couchdb
+        if url:
+            couch = couchdb.Server(url)
+        else:
+            couch = couchdb.Server()
+        if db_name in couch:
+            self.db = couch[db_name]
+        else:
+            self.db = couch.create(db_name)
+
+    def save(self):
+        self.db.save(self.experiment_entry)
+
+    def experiment_created_event(self, name, options):
+        CompleteReporter.experiment_created_event(self, name, options)
+        self.save()
+
+    def experiment_started_event(self, start_time, seed, args, kwargs):
+        CompleteReporter.experiment_started_event(self, start_time, seed, args, kwargs)
+        self.save()
+
+    def experiment_completed_event(self, stop_time, result):
+        CompleteReporter.experiment_completed_event(self, stop_time, result)
+        self.save()
+
+    def stage_created_event(self, name, source, signature):
+        CompleteReporter.stage_created_event(self, name, source, signature)
+        self.save()
+
+    def stage_started_event(self, name, start_time, arguments, cache_key):
+        CompleteReporter.stage_started_event(self, name, start_time, arguments, cache_key)
+        self.save()
+
+    def stage_completed_event(self, stop_time, result, result_logs, from_cache):
+        CompleteReporter.stage_completed_event(self, stop_time, result, result_logs, from_cache)
         self.save()
 
 class Reporter(logging.Handler):
