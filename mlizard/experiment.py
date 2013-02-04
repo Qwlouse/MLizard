@@ -168,8 +168,9 @@ class Experiment(object):
             import sys
             args = sys.argv[1:]
             ######## run main #########
-            self(*args)
+            result = self(*args)
             ###########################
+            print(result)
             # show all plots and wait
             plt.ioff()
             plt.show()
@@ -194,7 +195,7 @@ class Experiment(object):
             plots.append(fig)
         #report.plots = plots
         self.emit_completed(result)
-        return
+        return result
 
     ############################ To Move #######################################
     def plot(self, f): #TODO move to some observer

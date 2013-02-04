@@ -1,8 +1,7 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
-
-import logging
+import datetime
 import time
 from jinja2 import PackageLoader
 
@@ -53,6 +52,7 @@ class CompleteReporter(ExperimentObserver):
 
     def experiment_completed_event(self, stop_time, result):
         self.experiment_entry['stop_time'] = stop_time
+        self.experiment_entry['execution_time'] = stop_time - self.experiment_entry['start_time']
         self.experiment_entry['result'] = result
 
     def stage_created_event(self, name, doc, source, signature):
@@ -75,6 +75,7 @@ class CompleteReporter(ExperimentObserver):
     def stage_completed_event(self, stop_time):
         stage_entry = self.stack.pop()
         stage_entry['stop_time'] = stop_time
+        stage_entry['execution_time'] = stop_time - stage_entry['start_time']
 
 class CouchDBReporter(CompleteReporter):
     def __init__(self, url=None, db_name='mlizard_experiments'):
@@ -120,22 +121,29 @@ class CouchDBReporter(CompleteReporter):
         CompleteReporter.stage_completed_event(self, stop_time)
         self.save()
 
+def _datetimeformat(value, format='%H:%M / %d-%m-%Y'):
+    return time.strftime(format, time.localtime(value))
+
+def _timedeltaformat(value):
+    return str(datetime.timedelta(seconds=value))
 
 class JinjaReporter(CompleteReporter):
-    def write(self, path):
-        def datetimeformat(value, format='%H:%M / %d-%m-%Y'):
-            return time.strftime(format, time.localtime(value))
-
+    def __init__(self):
+        super(JinjaReporter, self).__init__()
         from jinja2 import Environment
-        env = Environment(loader=PackageLoader('mlizard', 'templates'))
-        env.filters['datetime'] = datetimeformat
-        t = env.get_template("PlainReport.jinja2")
-
-        r = t.render(experiment=self.experiment_entry)
-        with open(path, 'w') as outf:
-            outf.write(r)
+        self.env = Environment(loader=PackageLoader('mlizard', 'templates'))
+        self.env.filters['datetime'] = _datetimeformat
+        self.env.filters['timedelta'] = _timedeltaformat
 
     def experiment_completed_event(self, stop_time, result):
         CompleteReporter.experiment_completed_event(self, stop_time, result)
-        self.write("report.rst")
+        t = self.env.get_template("rstReport.jinja2")
+        r = t.render(experiment=self.experiment_entry)
+        if 'report_filename' in self.experiment_entry:
+            path = self.experiment_entry['report_filename']
+        else:
+            # replace the trailing '.py' with '.report'
+            path = self.experiment_entry['mainfile'][:-3] + '.report'
+        with open(path, 'w') as outf:
+            outf.write(r)
 

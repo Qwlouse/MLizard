@@ -1,0 +1,28 @@
+{{experiment.name}}
+=================
+{{ experiment.doc.strip() }}
+
+:mainfile:       {{ experiment.mainfile }}
+:started:        {{ experiment.start_time|datetime }}
+:execution_time: {{ experiment.execution_time | timedelta }}
+:seed:           {{ experiment.seed }}
+:stages:         {{ ", ".join(experiment.stages) }}
+
+Result
+-------
+{{ experiment.result }}
+
+
+Options
+-------{% for opt in experiment.options %}
+:{{ opt }}: {{ experiment.options[opt] }}{% endfor %}
+
+Call Summaries
+----------------{% for stage in experiment.called recursive %}
+{{ stage.name }}
+**************************
+:started:        {{ stage.start_time|datetime }}
+:execution_time: {{ stage.execution_time | timedelta }}
+:args:           {{ stage.arguments }}
+{% if stage.called %}{{ loop(stage.called) }}{% endif %}{% endfor %}
+
