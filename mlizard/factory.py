@@ -83,4 +83,4 @@ def create_basic_Experiment(seed = 123456):
     name = "TestExperiment"
     options = {}
     cache = CacheStub()
-    return Experiment(name, NO_LOGGER, NO_LOGGER, options, cache, seed)
+    return Experiment(name, NO_LOGGER, NO_LOGGER, options, cache, [], seed)
