@@ -1,8 +1,11 @@
 {{experiment.name}}
 =================
+mainfile: {{ experiment.mainfile }}
 started: {{ experiment.start_time|datetime }}
 ended:   {{ experiment.stop_time |datetime }}
 seed: {{ experiment.seed }}
+
+{{ experiment.doc }}
 
 Options
 -------

@@ -88,6 +88,12 @@ class Experiment(object):
                 o.experiment_created_event(self.name, self.options)
             except AttributeError:
                 pass
+    def emit_mainfile_found(self):
+        for o in self.observers:
+            try:
+                o.experiment_mainfile_found_event(self.mainfile, self.doc)
+            except AttributeError:
+                pass
 
     def emit_started(self, args, kwargs):
         start_time = time.time()
@@ -155,13 +161,13 @@ class Experiment(object):
     def main(self, f):
         assert self.main_stage is None, "Only one main stage is allowed!"
         self.main_stage = self.convert_to_stage_function(f)
-        main_file = inspect.getabsfile(f)
-        self.set_paths(main_file)
+        self.mainfile = inspect.getabsfile(f)
+        self.doc = inspect.getmodule(f).__doc__
         if f.__module__ == "__main__":
             import sys
             args = sys.argv[1:]
             ######## run main #########
-            report = self(*args)
+            self(*args)
             ###########################
             # show all plots and wait
             plt.ioff()
@@ -186,7 +192,8 @@ class Experiment(object):
             fig.draw()
             plots.append(fig)
         #report.plots = plots
-        return self.emit_completed(result)
+        self.emit_completed(result)
+        return
 
     ############################ To Move #######################################
     def plot(self, f): #TODO move to some observer

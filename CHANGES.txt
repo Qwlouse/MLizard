@@ -1,3 +1,6 @@
+- refactored Report writing and added Jinja2 template
+- added doc and mainfile to experiment
+
 v0.12 31.10.2012 -- report writing and many small features
 - added basic report writing
 - main stage accepts magic arguments

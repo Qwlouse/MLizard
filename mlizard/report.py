@@ -12,6 +12,9 @@ class ExperimentObserver(object):
     def experiment_created_event(self, name, options):
         pass
 
+    def experiment_mainfile_found_event(self, mainfile, doc):
+        pass
+
     def experiment_started_event(self, start_time, seed, args, kwargs):
         pass
 
@@ -36,6 +39,10 @@ class CompleteReporter(ExperimentObserver):
         self.experiment_entry['name'] = name
         self.experiment_entry['options'] = options
         self.experiment_entry['stages'] = {}
+
+    def experiment_mainfile_found_event(self, mainfile, doc):
+        self.experiment_entry['mainfile'] = mainfile
+        self.experiment_entry['doc'] = doc
 
     def experiment_started_event(self, start_time, seed, args, kwargs):
         self.experiment_entry['start_time'] = start_time
@@ -90,6 +97,10 @@ class CouchDBReporter(CompleteReporter):
 
     def experiment_created_event(self, name, options):
         CompleteReporter.experiment_created_event(self, name, options)
+        self.save()
+
+    def experiment_mainfile_found_event(self, mainfile, doc):
+        CompleteReporter.experiment_mainfile_found_event(self, mainfile, doc)
         self.save()
 
     def experiment_started_event(self, start_time, seed, args, kwargs):
