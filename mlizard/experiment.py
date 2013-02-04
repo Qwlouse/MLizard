@@ -163,6 +163,7 @@ class Experiment(object):
         self.main_stage = self.convert_to_stage_function(f)
         self.mainfile = inspect.getabsfile(f)
         self.doc = inspect.getmodule(f).__doc__
+        self.emit_mainfile_found()
         if f.__module__ == "__main__":
             import sys
             args = sys.argv[1:]

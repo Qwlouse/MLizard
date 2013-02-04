@@ -45,17 +45,17 @@ class StageFunction(object):
             except AttributeError:
                 pass
 
-    def emit_started(self, start_time, arguments, cache_key):
+    def emit_started(self, start_time, arguments):
         for o in self.observers:
             try:
-                o.stage_started_event(self.__name__, start_time, arguments, cache_key)
+                o.stage_started_event(self.__name__, start_time, arguments)
             except AttributeError:
                 pass
 
-    def emit_completed(self, stop_time, result, result_logs, from_cache):
+    def emit_completed(self, stop_time):
         for o in self.observers:
             try:
-                o.stage_completed_event(stop_time, result, result_logs, from_cache)
+                o.stage_completed_event(stop_time)
             except AttributeError:
                 pass
 
@@ -92,7 +92,7 @@ class StageFunction(object):
         self.message_logger.debug("Called with %s", arguments)
         key = self.get_key(arguments)
         start_time = time.time()
-        self.emit_started(start_time, arguments, key)
+        self.emit_started(start_time, arguments)
         # do we want to cache?
         if self.cache and self.do_cache_results:
             # Check for cached version
@@ -102,7 +102,7 @@ class StageFunction(object):
                 self.message_logger.info("Retrieved results from cache. "
                                          "Skipping Execution")
                 stop_time = time.time()
-                self.emit_completed(stop_time, result, result_logs, True)
+                self.emit_completed(stop_time)
                 return result
             except KeyError:
                 pass
@@ -115,7 +115,7 @@ class StageFunction(object):
         stop_time = time.time()
         exec_time = stop_time - start_time
         self.message_logger.info("Completed in %2.2f sec", exec_time)
-        self.emit_completed(stop_time, result, result_logs, False)
+        self.emit_completed(stop_time)
         ##########################
         if self.cache and self.do_cache_results and \
            exec_time > self.caching_threshold:

@@ -24,10 +24,10 @@ class ExperimentObserver(object):
     def stage_created_event(self, name, doc, source, signature):
         pass
 
-    def stage_started_event(self, name, start_time, arguments, cache_key):
+    def stage_started_event(self, name, start_time, arguments):
         pass
 
-    def stage_completed_event(self, stop_time, result, result_logs, from_cache):
+    def stage_completed_event(self, stop_time):
         pass
 
 class CompleteReporter(ExperimentObserver):
@@ -62,23 +62,19 @@ class CompleteReporter(ExperimentObserver):
             signature=signature)
         self.experiment_entry['stages'][name] = stage_entry
 
-    def stage_started_event(self, name, start_time, arguments, cache_key):
+    def stage_started_event(self, name, start_time, arguments):
         stage_entry = dict(
             name=name,
             start_time=start_time,
             arguments=arguments,
-            cache_key=cache_key,
             called=[]
             )
         self.stack[-1]['called'].append(stage_entry)
         self.stack.append(stage_entry)
 
-    def stage_completed_event(self, stop_time, result, result_logs, from_cache):
+    def stage_completed_event(self, stop_time):
         stage_entry = self.stack.pop()
         stage_entry['stop_time'] = stop_time
-        stage_entry['result'] = result
-        stage_entry['result_logs'] = result_logs
-        stage_entry['from_cache'] = from_cache
 
 class CouchDBReporter(CompleteReporter):
     def __init__(self, url=None, db_name='mlizard_experiments'):
@@ -116,12 +112,12 @@ class CouchDBReporter(CompleteReporter):
         CompleteReporter.stage_created_event(self, name, doc, source, signature)
         self.save()
 
-    def stage_started_event(self, name, start_time, arguments, cache_key):
-        CompleteReporter.stage_started_event(self, name, start_time, arguments, cache_key)
+    def stage_started_event(self, name, start_time, arguments):
+        CompleteReporter.stage_started_event(self, name, start_time, arguments)
         self.save()
 
-    def stage_completed_event(self, stop_time, result, result_logs, from_cache):
-        CompleteReporter.stage_completed_event(self, stop_time, result, result_logs, from_cache)
+    def stage_completed_event(self, stop_time):
+        CompleteReporter.stage_completed_event(self, stop_time)
         self.save()
 
 
