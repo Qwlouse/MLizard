@@ -4,6 +4,7 @@ from __future__ import division, print_function, unicode_literals
 
 import logging
 import time
+from jinja2 import PackageLoader
 
 IDLE, STARTED, STAGE_RUNNING, FINISHED = range(4)
 
@@ -111,6 +112,26 @@ class CouchDBReporter(CompleteReporter):
         CompleteReporter.stage_completed_event(self, stop_time, result, result_logs, from_cache)
         self.save()
 
+
+class JinjaReporter(CompleteReporter):
+    def write(self, path):
+        def datetimeformat(value, format='%H:%M / %d-%m-%Y'):
+            return time.strftime(format, time.localtime(value))
+
+        from jinja2 import Environment
+        env = Environment(loader=PackageLoader('mlizard', 'templates'))
+        env.filters['datetime'] = datetimeformat
+        t = env.get_template("PlainReport.jinja2")
+
+        r = t.render(experiment=self.experiment_entry)
+        with open(path, 'w') as outf:
+            outf.write(r)
+
+    def experiment_completed_event(self, stop_time, result):
+        CompleteReporter.experiment_completed_event(self, stop_time, result)
+        self.write("report.rst")
+
+
 class Reporter(logging.Handler):
     def __init__(self, name, message_logger):
         super(Reporter, self).__init__()
@@ -174,50 +195,3 @@ class Report(logging.Handler):
         self.log_records.append(record)
 
 
-
-class PlainTextReportFormatter(object):
-    def __init__(self):
-        self.log_formatter = logging.Formatter('%(levelname)s - %(name)s - %(message)s')
-        self.time_format = "%d.%m.%Y %H:%M.%S"
-
-    def format(self, report):
-        return """{experiment_name}
-=================
-started: {start_time}
-ended:   {end_time}
-seed: {seed}
-
-Stage Summary
--------------
-{stage_summary}
-
-Options
--------
-{options}
-
-Main Result
------------
-{main_result}
-
-Logged Results
---------------
-{logged_results}
-
-Stage Logs
-----------
-{logs}""".format(
-            experiment_name = report.experiment_name,
-            start_time = time.strftime(self.time_format, time.gmtime(report.start_time)),
-            end_time = time.strftime(self.time_format, time.gmtime(report.end_time)),
-            seed = report.seed,
-            options = "\n".join("{} = {}".format(k, v)
-                                for k,v in report.options.items()),
-            stage_summary = "\n".join("%d x %s : %s"%(len(s['execution_times']),
-                                                      s['name'],
-                                                      ", ".join('%2.2fs'%t for t in s['execution_times'])) for s in report.stage_summary),
-            main_result = report.main_result,
-            logged_results = "\n".join("{} = {}".format(k, v)
-                                    for k,v in report.logged_results.items()),
-            logs = "\n".join(self.log_formatter.format(l)
-                             for l in report.log_records)
-        )

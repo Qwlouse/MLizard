@@ -1,0 +1,33 @@
+{{experiment.name}}
+=================
+started: {{ experiment.start_time|datetime }}
+ended:   {{ experiment.stop_time |datetime }}
+seed: {{ experiment.seed }}
+
+Options
+-------
+{% for opt in experiment.options %}
+* {{ opt }}
+{% endfor %}
+
+Main Result
+-----------
+{{ experiment.result }}
+
+Stage Summaries
+-------------
+{% for stage in experiment.called recursive %}
+    {{ stage.name }}
+    **************************
+    started: {{ stage.start_time|datetime }}
+    ended:   {{ stage.stop_time |datetime }}
+    args:    {{ stage.arguments }}
+
+    result:  {{ stage.result }}
+    results from logs: {{ stage.result_logs }}
+    {% if stage.called %}
+        {{ loop(stage.called) }}
+    {% endif %}
+
+{% endfor %}
+

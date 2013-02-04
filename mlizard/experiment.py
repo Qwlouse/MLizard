@@ -41,9 +41,8 @@ import log
 from matplotlib import pyplot as plt
 import numpy as np
 import time
-from mlizard.db import StageDBInterface
 
-from report import Report, PlainTextReportFormatter
+
 from stage import StageFunctionOptionsView, StageFunction
 
 __all__ = ['Experiment']
@@ -209,14 +208,6 @@ class Experiment(object):
         if not os.path.exists(self.results_dir):
             self.message_logger.warn("results_dir '%s' does not exist. No results will be written.", self.results_dir)
             self.results_dir = None
-    def write_report(self, report): #TODO move to some observer
-        formatter = PlainTextReportFormatter()
-        if 'report_filename' in self.options and self.results_dir:
-            report_path = os.path.join(self.results_dir, self.options['report_filename'])
-            with open(report_path, 'w') as f:
-                f.write(formatter.format(report))
-        else:
-            print(formatter.format(report))
 
 
 
