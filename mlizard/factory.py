@@ -25,7 +25,7 @@ def create_basic_stream_logger(name, level=logging.INFO):
 
 package_logger = create_basic_stream_logger('MLizard')
 
-def createExperiment(name = "Experiment", config_file=None, config_string=None,
+def createExperiment(name, config_file=None, config_string=None,
                      logger=None, seed=None, cache=None, observers=()):
     # reading configuration
     options = ConfigObj(unrepr=True)
