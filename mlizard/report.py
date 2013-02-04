@@ -21,7 +21,7 @@ class ExperimentObserver(object):
     def experiment_completed_event(self, stop_time, result):
         pass
 
-    def stage_created_event(self, name, source, signature):
+    def stage_created_event(self, name, doc, source, signature):
         pass
 
     def stage_started_event(self, name, start_time, arguments, cache_key):
@@ -55,9 +55,10 @@ class CompleteReporter(ExperimentObserver):
         self.experiment_entry['stop_time'] = stop_time
         self.experiment_entry['result'] = result
 
-    def stage_created_event(self, name, source, signature):
+    def stage_created_event(self, name, doc, source, signature):
         stage_entry = dict(
             source=source,
+            doc=doc,
             signature=signature)
         self.experiment_entry['stages'][name] = stage_entry
 
@@ -111,8 +112,8 @@ class CouchDBReporter(CompleteReporter):
         CompleteReporter.experiment_completed_event(self, stop_time, result)
         self.save()
 
-    def stage_created_event(self, name, source, signature):
-        CompleteReporter.stage_created_event(self, name, source, signature)
+    def stage_created_event(self, name, doc, source, signature):
+        CompleteReporter.stage_created_event(self, name, doc, source, signature)
         self.save()
 
     def stage_started_event(self, name, start_time, arguments, cache_key):
@@ -141,68 +142,4 @@ class JinjaReporter(CompleteReporter):
     def experiment_completed_event(self, stop_time, result):
         CompleteReporter.experiment_completed_event(self, stop_time, result)
         self.write("report.rst")
-
-
-class Reporter(logging.Handler):
-    def __init__(self, name, message_logger):
-        super(Reporter, self).__init__()
-        self.experiment_name = name
-        self.message_logger = message_logger
-        self.log_records = []
-        self.mode = IDLE
-        # provide debug, info, ... from message_logger
-        self.debug = self.message_logger.debug
-        self.info = self.message_logger.info
-        self.warning = self.message_logger.warning
-        self.error = self.message_logger.error
-        self.critical = self.message_logger.critical
-        self.log = self.message_logger.log
-        self.exception = self.message_logger.exception
-
-    def experiment_started(self, options, seed):
-        self.ex_start_time = time.time()
-        self.options = options
-        self.seed = seed
-        self.log_records = []
-        self.mode = STARTED
-
-    def experiment_completed(self):
-        self.mode = FINISHED
-        self.ex_stop_time = time.time()
-
-    def emit(self, record):
-        self.log_records.append(record)
-
-    def create_report(self):
-        report = Report(self.experiment_name)
-        self.message_logger.addHandler(report)
-        return report
-
-    def get_message_logger_for(self, stagename):
-        return self.message_logger.get_child(stagename)
-
-
-
-class Report(logging.Handler):
-    def __init__(self, experiment_name):
-        super(Report, self).__init__()
-        self.experiment_name = experiment_name
-        self.start_time = time.time()
-        self.end_time = 0.
-        self.seed = None
-        self.options = {}
-        self.stage_summary = []
-        self.main_result = None
-        self.logged_results = {}
-        self.log_records = []
-        self.plots = []
-
-    def experiment_started(self, options, seed):
-        self.options = options
-        self.seed = seed
-
-
-    def emit(self, record):
-        self.log_records.append(record)
-
 

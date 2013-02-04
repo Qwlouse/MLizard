@@ -9,7 +9,6 @@ from StringIO import StringIO
 
 from experiment import Experiment
 from mlizard.caches import CacheStub
-from mlizard.db import DummyDB
 
 NO_LOGGER = logging.getLogger('ignore')
 NO_LOGGER.disabled = 1

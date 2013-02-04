@@ -41,7 +41,7 @@ class StageFunction(object):
     def emit_created(self):
         for o in self.observers:
             try:
-                o.stage_created_event(self.__name__, self.source, self.signature)
+                o.stage_created_event(self.__name__, self.__doc__, self.source, self.signature)
             except AttributeError:
                 pass
 
